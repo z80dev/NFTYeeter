@@ -1,5 +1,8 @@
 # NFTYeeter
+
 Yeets NFTs across chains
+
+Uses Connext's upcoming Amarok update
 
 # Current architecture
 
