@@ -4,6 +4,8 @@ pragma solidity ^0.8.11;
 import "solmate/tokens/ERC721.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
+import "openzeppelin-contracts/contracts/utils/Create2.sol";
+import "openzeppelin-contracts/contracts/utils/Address.sol";
 import "ERC721X/interfaces/IERC721X.sol";
 import "ERC721X/ERC721X.sol";
 
@@ -14,7 +16,6 @@ contract NFTYeeter is ERC721TokenReceiver {
     address public owner;
 
     mapping(address => mapping(uint256 => DepositDetails)) deposits; // deposits[collection][tokenId] = depositor
-    mapping(uint32 => mapping(address => address)) localAddress; // localAddress[originChainId][collectionAddress]
     mapping(uint32 => address) trustedYeeters; // remote addresses of other yeeters, though ideally
                                                // we would want them all to have the same address. still, some may upgrade
 
@@ -35,15 +36,24 @@ contract NFTYeeter is ERC721TokenReceiver {
     }
 
     // this is maintained on each "Home" chain where an NFT is originally locked
+    // we don't need it on remote chains because:
+    // - the ERC721X on the remote chain will have all the info we need to re-bridge the NFT to another chain
+    // - you can't "unwrap" an NFT on a remote chain and that's what this is for
     struct DepositDetails {
         address depositor;
         bool bridged;
     }
 
-    // this is used to mint new NFTs upon receipt
+    // this is used to mint new NFTs upon receipt on a "remote" chain
     // if this big payload makes bridging expensive, we should separate
     // the process of bridging a collection (name, symbol) from bridging
     // of tokens (tokenId, tokenUri)
+    // specially once we add royalties
+    //
+    // buuuut... this would add a requirement that a collection *must* be bridged before any single items
+    // can be bridged, which was a big value add
+    //
+    // it will all come down to how expensive bridging a single item + all the data for the collection is
     struct BridgedTokenDetails {
         uint16 originChainId;
         address originAddress;
@@ -54,8 +64,21 @@ contract NFTYeeter is ERC721TokenReceiver {
         string tokenURI;
     }
 
-    function getLocalAddress(uint16 originChainId, address originAddress) external view returns (address) {
-        return localAddress[originChainId][originAddress];
+    function _calculateCreate2Address(uint32 chainId, address originAddress) internal view returns (address) {
+        bytes32 salt = keccak(abi.encodePacked(originChainId, originAddress));
+        bytes memory creationCode = type(ERC721X).creationCode;
+        return Create2.computeAddress(salt, keccak256(creationCode));
+    }
+
+    function getLocalAddress(uint32 originChainId, address originAddress) external view returns (address) {
+        // modify this method to return deterministic address according to create2
+        return _calculateCreate2Address(originChainId, originAddress);
+    }
+
+    function _deployERC721X(uint32 chainId, address originAddress) internal view returns (ERC721X) {
+        bytes32 salt = keccak(abi.encodePacked(originChainId, originAddress));
+        bytes memory creationCode = type(ERC721X).creationCode;
+        return ERC721X(Create2.deploy(0, salt, creationCode));
     }
 
     function withdraw(address collection, uint256 tokenId) external {
@@ -82,21 +105,24 @@ contract NFTYeeter is ERC721TokenReceiver {
             // we're bridging this NFT *back* home
             DepositDetails storage depositDetails = deposits[details.originAddress][details.tokenId];
 
-            // record new owner to enable them to withdraw
+            // record new owner, may have changed on other chain
             depositDetails.depositor = details.owner;
 
             // record that the NFT is *back* and does not exist on other chains
-            depositDetails.bridged = false;
+            depositDetails.bridged = false; // enables withdrawal of native NFT
 
-        } else if (localAddress[details.originChainId][details.originAddress] != address(0)) {
-            // local XERC721 contract exists, we just need to mint
-            ERC721X nft = ERC721X(localAddress[details.originChainId][details.originAddress]);
-            nft.mint(details.owner, details.tokenId, details.tokenURI);
         } else {
-            // deploy new ERC721 contract
-            ERC721X nft = new ERC721X(details.name, details.symbol, details.originAddress, details.originChainId);
-            localAddress[details.originChainId][details.originAddress] = address(nft);
-            nft.mint(details.owner, details.tokenId, details.tokenURI);
+            address localAddress = _calculateCreate2Address(details.originChainId, details.originAddress);
+            if (!Address.isContract(localAddress)) { // this check will change after create2
+                // local XERC721 contract exists, we just need to mint
+                ERC721X nft = ERC721X(localAddress[details.originChainId][details.originAddress]);
+                nft.mint(details.owner, details.tokenId, details.tokenURI);
+            } else {
+                // deploy new ERC721 contract
+                // this will also change w/ create2
+                ERC721X nft = _deployERC721X(details.originChainId, details.originAddress);
+                nft.mint(details.owner, details.tokenId, details.tokenURI);
+            }
         }
 
 
