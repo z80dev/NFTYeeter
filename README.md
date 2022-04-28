@@ -6,7 +6,7 @@ Uses Connext's upcoming Amarok update
 
 # Current architecture
 
-Right now there's a single contract tracking all relevant state, but this will be split up into single contracts that handle a specific responsibility.
+Right now there's a single contract tracking all state and handling all of the functionality described below, but this will be split up into single contracts that handle a specific responsibility.
 
 # Planned Architecture
 
