@@ -9,12 +9,12 @@ import "ERC721X/ERC721X.sol";
 import "forge-std/console.sol";
 import "forge-std/console2.sol";
 
-contract ContractTest is Test {
+contract NFTYeeterTest is Test {
 
     NFTYeeter yeeter;
     NFTYeeter remoteYeeter;
     ERC721X localNFT;
-    address public alice = address(0x1212121212121212);
+    address public alice = address(0xaa);
     address public bob = address(0xbb);
     address public charlie = address(0xcc);
     address public connext = address(0xce);
