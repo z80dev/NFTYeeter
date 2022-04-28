@@ -14,14 +14,16 @@ contract NFTYeeter is ERC721TokenReceiver {
     uint32 public immutable localDomain;
     address public immutable connext;
     address public owner;
+    address private immutable transactingAssetId;
 
     mapping(address => mapping(uint256 => DepositDetails)) deposits; // deposits[collection][tokenId] = depositor
     mapping(uint32 => address) trustedYeeters; // remote addresses of other yeeters, though ideally
                                                // we would want them all to have the same address. still, some may upgrade
 
-    constructor(uint32 _localDomain, address _connext) {
+    constructor(uint32 _localDomain, address _connext, address _transactingAssetId) {
         localDomain = _localDomain;
         connext = _connext;
+        transactingAssetId = _transactingAssetId;
         owner = msg.sender;
     }
 
@@ -55,7 +57,7 @@ contract NFTYeeter is ERC721TokenReceiver {
     //
     // it will all come down to how expensive bridging a single item + all the data for the collection is
     struct BridgedTokenDetails {
-        uint16 originChainId;
+        uint32 originChainId;
         address originAddress;
         uint256 tokenId;
         address owner;
@@ -65,18 +67,17 @@ contract NFTYeeter is ERC721TokenReceiver {
     }
 
     function _calculateCreate2Address(uint32 chainId, address originAddress) internal view returns (address) {
-        bytes32 salt = keccak(abi.encodePacked(originChainId, originAddress));
+        bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
         bytes memory creationCode = type(ERC721X).creationCode;
         return Create2.computeAddress(salt, keccak256(creationCode));
     }
 
     function getLocalAddress(uint32 originChainId, address originAddress) external view returns (address) {
-        // modify this method to return deterministic address according to create2
         return _calculateCreate2Address(originChainId, originAddress);
     }
 
-    function _deployERC721X(uint32 chainId, address originAddress) internal view returns (ERC721X) {
-        bytes32 salt = keccak(abi.encodePacked(originChainId, originAddress));
+    function _deployERC721X(uint32 chainId, address originAddress) internal returns (ERC721X) {
+        bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
         bytes memory creationCode = type(ERC721X).creationCode;
         return ERC721X(Create2.deploy(0, salt, creationCode));
     }
@@ -115,7 +116,7 @@ contract NFTYeeter is ERC721TokenReceiver {
             address localAddress = _calculateCreate2Address(details.originChainId, details.originAddress);
             if (!Address.isContract(localAddress)) { // this check will change after create2
                 // local XERC721 contract exists, we just need to mint
-                ERC721X nft = ERC721X(localAddress[details.originChainId][details.originAddress]);
+                ERC721X nft = ERC721X(localAddress);
                 nft.mint(details.owner, details.tokenId, details.tokenURI);
             } else {
                 // deploy new ERC721 contract
@@ -126,6 +127,43 @@ contract NFTYeeter is ERC721TokenReceiver {
         }
 
 
+    }
+
+    function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId) external {
+        require(ERC721(collection).ownerOf(tokenId) == address(this));
+        require(deposits[collection][tokenId].depositor == msg.sender);
+        require(deposits[collection][tokenId].bridged == false);
+        _bridgeToken(collection, tokenId, recipient, dstChainId);
+    }
+
+    function _bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId) internal {
+        address dstYeeter = trustedYeeters[dstChainId];
+        require(dstYeeter != address(0), "Chain not supported");
+        ERC721 nft = ERC721(collection);
+        bytes4 selector = this.receiveAsset.selector;
+        BridgedTokenDetails memory details = BridgedTokenDetails(
+                                                                 localDomain,
+                                                                 collection,
+                                                                 tokenId,
+                                                                 recipient,
+                                                                 nft.name(),
+                                                                 nft.symbol(),
+                                                                 nft.tokenURI(tokenId)
+        );
+        bytes memory payload = abi.encodeWithSelector(selector, details);
+        IConnextHandler.CallParams memory callParams = IConnextHandler.CallParams({
+                to: dstYeeter,
+                callData: payload,
+                originDomain: localDomain,
+                destinationDomain: dstChainId
+            });
+        IConnextHandler.XCallArgs memory xcallArgs = IConnextHandler.XCallArgs({
+                params: callParams,
+                transactingAssetId: transactingAssetId,
+                amount: 0,
+                relayerFee: 0
+            });
+        IConnextHandler(connext).xcall(xcallArgs);
     }
 
     function onERC721Received(
