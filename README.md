@@ -2,7 +2,9 @@
 
 Yeets NFTs across chains
 
-Uses Connext's upcoming Amarok update
+Makes use of:
+- [ERC721X](https://github.com/OphiuchusDAO/ERC721X)
+- Connext's upcoming Amarok update
 
 # Current architecture
 
