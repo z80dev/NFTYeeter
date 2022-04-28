@@ -16,8 +16,8 @@ contract NFTYeeter is ERC721TokenReceiver {
     address public owner;
     address private immutable transactingAssetId;
 
-    mapping(address => mapping(uint256 => DepositDetails)) deposits; // deposits[collection][tokenId] = depositor
-    mapping(uint32 => address) trustedYeeters; // remote addresses of other yeeters, though ideally
+    mapping(address => mapping(uint256 => DepositDetails)) public deposits; // deposits[collection][tokenId] = depositor
+    mapping(uint32 => address) public trustedYeeters; // remote addresses of other yeeters, though ideally
                                                // we would want them all to have the same address. still, some may upgrade
 
     constructor(uint32 _localDomain, address _connext, address _transactingAssetId) {
@@ -83,6 +83,11 @@ contract NFTYeeter is ERC721TokenReceiver {
     }
 
     function withdraw(address collection, uint256 tokenId) external {
+        // don't need to do much here other than send NFT back
+        // could clear deposits, but why waste gas
+        // a deposit is only usable if the NFT is in posession of the contract anyway
+        // and anytime the contract receives an NFT via safeTransferFrom, deposits is
+        // updated anyway.
         require(ERC721(collection).ownerOf(tokenId) == address(this), "NFT Not Deposited");
         DepositDetails memory details = deposits[collection][tokenId];
         require(details.bridged == false, "NFT Currently Bridged");
@@ -130,9 +135,9 @@ contract NFTYeeter is ERC721TokenReceiver {
     }
 
     function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId) external {
-        require(ERC721(collection).ownerOf(tokenId) == address(this));
-        require(deposits[collection][tokenId].depositor == msg.sender);
-        require(deposits[collection][tokenId].bridged == false);
+        require(ERC721(collection).ownerOf(tokenId) == address(this), "NFT NOT IN CONTRACT");
+        require(deposits[collection][tokenId].depositor == msg.sender, "NOT_DEPOSITOR");
+        require(deposits[collection][tokenId].bridged == false, "ALREADY_BRIDGED");
         _bridgeToken(collection, tokenId, recipient, dstChainId);
     }
 
@@ -164,6 +169,9 @@ contract NFTYeeter is ERC721TokenReceiver {
                 relayerFee: 0
             });
         IConnextHandler(connext).xcall(xcallArgs);
+        // record that this NFT has been bridged
+        DepositDetails storage depositDetails = deposits[collection][tokenId];
+        depositDetails.bridged = true;
     }
 
     function onERC721Received(
