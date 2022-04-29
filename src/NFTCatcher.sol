@@ -4,6 +4,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import "./MinimalOwnable.sol";
 import "ERC721X/ERC721X.sol";
+import "ERC721X/ERC721XInitializable.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
@@ -61,7 +62,7 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
 
     function _calculateCreate2Address(uint32 chainId, address originAddress) internal view returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
-        bytes memory creationCode = type(ERC721X).creationCode;
+        bytes memory creationCode = type(ERC721XInitializable).creationCode;
         return Create2.computeAddress(salt, keccak256(creationCode));
     }
 
@@ -69,10 +70,12 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
         return _calculateCreate2Address(originChainId, originAddress);
     }
 
-    function _deployERC721X(uint32 chainId, address originAddress) internal returns (ERC721X) {
+    function _deployERC721X(uint32 chainId, address originAddress, string memory name, string memory symbol) internal returns (ERC721XInitializable) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
-        bytes memory creationCode = type(ERC721X).creationCode;
-        return ERC721X(Create2.deploy(0, salt, creationCode));
+        bytes memory creationCode = type(ERC721XInitializable).creationCode;
+        ERC721XInitializable nft = ERC721XInitializable(Create2.deploy(0, salt, creationCode));
+        nft.initialize(name, symbol, originAddress, chainId);
+        return nft;
     }
 
     // function called by remote contract
@@ -93,14 +96,14 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
 
         } else {
             address localAddress = _calculateCreate2Address(details.originChainId, details.originAddress);
-            if (!Address.isContract(localAddress)) { // this check will change after create2
+            if (Address.isContract(localAddress)) { // this check will change after create2
                 // local XERC721 contract exists, we just need to mint
                 ERC721X nft = ERC721X(localAddress);
                 nft.mint(details.owner, details.tokenId, details.tokenURI);
             } else {
                 // deploy new ERC721 contract
                 // this will also change w/ create2
-                ERC721X nft = _deployERC721X(details.originChainId, details.originAddress);
+                ERC721XInitializable nft = _deployERC721X(details.originChainId, details.originAddress, details.name, details.symbol);
                 nft.mint(details.owner, details.tokenId, details.tokenURI);
             }
         }
