@@ -9,8 +9,9 @@ import "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "./interfaces/IDepositRegistry.sol";
+import "./interfaces/INFTCatcher.sol";
 
-contract NFTCatcher is MinimalOwnable {
+contract NFTCatcher is INFTCatcher, MinimalOwnable {
 
     uint32 public immutable localDomain;
     address public immutable connext;
@@ -76,7 +77,7 @@ contract NFTCatcher is MinimalOwnable {
 
     // function called by remote contract
     // this signature maximizes future flexibility & backwards compatibility
-    function receiveAsset(bytes memory _payload) public {
+    function receiveAsset(bytes memory _payload) external {
         // only connext can call this
         require(msg.sender == connext, "NOT_CONNEXT");
         // check remote contract is trusted remote NFTYeeter

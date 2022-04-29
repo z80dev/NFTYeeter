@@ -7,10 +7,11 @@ import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";
 import "ERC721X/ERC721X.sol";
 import "./interfaces/IDepositRegistry.sol";
+import "./interfaces/INFTYeeter.sol";
 import "./NFTCatcher.sol";
 import "./MinimalOwnable.sol";
 
-contract NFTYeeter is MinimalOwnable {
+contract NFTYeeter is INFTYeeter, MinimalOwnable {
 
     uint32 public immutable localDomain;
     address public immutable connext;
