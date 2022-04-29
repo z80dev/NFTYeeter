@@ -8,23 +8,25 @@ import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "openzeppelin-contracts/contracts/utils/Address.sol";
 import "ERC721X/interfaces/IERC721X.sol";
 import "ERC721X/ERC721X.sol";
+import "./interfaces/IDepositRegistry.sol";
 
 contract NFTYeeter is ERC721TokenReceiver {
 
     uint32 public immutable localDomain;
     address public immutable connext;
     address public owner;
+    address public registry;
     address private immutable transactingAssetId;
 
-    mapping(address => mapping(uint256 => DepositDetails)) public deposits; // deposits[collection][tokenId] = depositor
     mapping(uint32 => address) public trustedYeeters; // remote addresses of other yeeters, though ideally
                                                // we would want them all to have the same address. still, some may upgrade
 
-    constructor(uint32 _localDomain, address _connext, address _transactingAssetId) {
+    constructor(uint32 _localDomain, address _connext, address _transactingAssetId, address _registry) {
         localDomain = _localDomain;
         connext = _connext;
         transactingAssetId = _transactingAssetId;
         owner = msg.sender;
+        registry = _registry;
     }
 
     function setOwner(address newOwner) external {
@@ -35,15 +37,6 @@ contract NFTYeeter is ERC721TokenReceiver {
     function setTrustedYeeter(uint32 chainId, address yeeter) external {
         require(msg.sender == owner);
         trustedYeeters[chainId] = yeeter;
-    }
-
-    // this is maintained on each "Home" chain where an NFT is originally locked
-    // we don't need it on remote chains because:
-    // - the ERC721X on the remote chain will have all the info we need to re-bridge the NFT to another chain
-    // - you can't "unwrap" an NFT on a remote chain and that's what this is for
-    struct DepositDetails {
-        address depositor;
-        bool bridged;
     }
 
     // this is used to mint new NFTs upon receipt on a "remote" chain
@@ -82,19 +75,6 @@ contract NFTYeeter is ERC721TokenReceiver {
         return ERC721X(Create2.deploy(0, salt, creationCode));
     }
 
-    function withdraw(address collection, uint256 tokenId) external {
-        // don't need to do much here other than send NFT back
-        // could clear deposits, but why waste gas
-        // a deposit is only usable if the NFT is in posession of the contract anyway
-        // and anytime the contract receives an NFT via safeTransferFrom, deposits is
-        // updated anyway.
-        require(ERC721(collection).ownerOf(tokenId) == address(this), "NFT Not Deposited");
-        DepositDetails memory details = deposits[collection][tokenId];
-        require(details.bridged == false, "NFT Currently Bridged");
-        require(details.depositor == msg.sender, "Unauth");
-        ERC721(collection).safeTransferFrom(address(this), msg.sender, tokenId);
-    }
-
     // function called by remote contract
     // this signature maximizes future flexibility & backwards compatibility
     function receiveAsset(bytes memory _payload) public {
@@ -109,13 +89,7 @@ contract NFTYeeter is ERC721TokenReceiver {
 
         if (details.originChainId == localDomain) {
             // we're bridging this NFT *back* home
-            DepositDetails storage depositDetails = deposits[details.originAddress][details.tokenId];
-
-            // record new owner, may have changed on other chain
-            depositDetails.depositor = details.owner;
-
-            // record that the NFT is *back* and does not exist on other chains
-            depositDetails.bridged = false; // enables withdrawal of native NFT
+            IDepositRegistry(registry).setDetails(details.originAddress, details.tokenId, details.owner, false);
 
         } else {
             address localAddress = _calculateCreate2Address(details.originChainId, details.originAddress);
@@ -135,9 +109,11 @@ contract NFTYeeter is ERC721TokenReceiver {
     }
 
     function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId) external {
-        require(ERC721(collection).ownerOf(tokenId) == address(this), "NFT NOT IN CONTRACT");
-        require(deposits[collection][tokenId].depositor == msg.sender, "NOT_DEPOSITOR");
-        require(deposits[collection][tokenId].bridged == false, "ALREADY_BRIDGED");
+        // need to check here and differentiate between native NFTs and ERC721X
+        require(ERC721(collection).ownerOf(tokenId) == registry, "NOT_IN_REGISTRY");
+        (address depositor, bool bridged) = IDepositRegistry(registry).deposits(collection, tokenId);
+        require(depositor == msg.sender, "NOT_DEPOSITOR");
+        require(bridged == false, "ALREADY_BRIDGED");
         _bridgeToken(collection, tokenId, recipient, dstChainId);
     }
 
@@ -170,17 +146,7 @@ contract NFTYeeter is ERC721TokenReceiver {
             });
         IConnextHandler(connext).xcall(xcallArgs);
         // record that this NFT has been bridged
-        DepositDetails storage depositDetails = deposits[collection][tokenId];
-        depositDetails.bridged = true;
+        IDepositRegistry(registry).setDetails(collection, tokenId, recipient, true);
     }
 
-    function onERC721Received(
-        address,
-        address from,
-        uint256 tokenId,
-        bytes calldata
-    ) external override returns (bytes4) {
-        deposits[msg.sender][tokenId] = DepositDetails({depositor: from, bridged: false });
-        return ERC721TokenReceiver.onERC721Received.selector;
-    }
 }

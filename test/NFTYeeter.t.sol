@@ -3,6 +3,7 @@ pragma solidity ^0.8.11;
 
 import "forge-std/Test.sol";
 import "../src/NFTYeeter.sol";
+import "../src/DepositRegistry.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import "solmate/tokens/ERC721.sol";
 import "ERC721X/ERC721X.sol";
@@ -13,6 +14,7 @@ contract NFTYeeterTest is Test {
 
     NFTYeeter yeeter;
     NFTYeeter remoteYeeter;
+    DepositRegistry reg;
     ERC721X localNFT;
     address public alice = address(0xaa);
     address public bob = address(0xbb);
@@ -24,30 +26,27 @@ contract NFTYeeterTest is Test {
     uint32 remoteDomain = uint32(2);
 
     function setUp() public {
-        yeeter = new NFTYeeter(localDomain, connext, transactingAssetId);
-        remoteYeeter = new NFTYeeter(remoteDomain, connext, transactingAssetId);
+        reg = new DepositRegistry();
+        yeeter = new NFTYeeter(localDomain, connext, transactingAssetId, address(reg));
+        remoteYeeter = new NFTYeeter(remoteDomain, connext, transactingAssetId, address(reg));
         yeeter.setTrustedYeeter(remoteDomain, address(remoteYeeter));
+        reg.setOperatorAuth(address(yeeter), true);
         localNFT = new ERC721X("TestMonkeys", "TST", address(0), localDomain);
         localNFT.mint(alice, 0, "testURI");
     }
 
-    function testYeeterAcceptsDeposits() public {
-        vm.prank(alice);
-        localNFT.safeTransferFrom(alice, address(yeeter), 0);
-        assertEq(localNFT.ownerOf(0), address(yeeter));
-        (address depositor, bool bridged) = yeeter.deposits(address(localNFT), 0);
-        assertEq(depositor, alice);
-        assertTrue(!bridged);
-    }
-
     function testYeeterWillBridge() public {
         vm.startPrank(alice);
-        localNFT.safeTransferFrom(alice, address(yeeter), 0);
+        localNFT.safeTransferFrom(alice, address(reg), 0);
         vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
         yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain);
-        (address depositor, bool bridged) = yeeter.deposits(address(localNFT), 0);
+        (address depositor, bool bridged) = reg.deposits(address(localNFT), 0);
         assertEq(depositor, alice);
         assertTrue(bridged);
+
+        // test that we can't bridge it again
+        vm.expectRevert("ALREADY_BRIDGED");
+        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain);
     }
 
 }
