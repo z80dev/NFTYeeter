@@ -3,6 +3,7 @@ pragma solidity ^0.8.11;
 
 import "forge-std/Test.sol";
 import "../src/NFTYeeter.sol";
+import "../src/NFTCatcher.sol";
 import "../src/DepositRegistry.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import "solmate/tokens/ERC721.sol";
@@ -13,7 +14,7 @@ import "forge-std/console2.sol";
 contract NFTYeeterTest is Test {
 
     NFTYeeter yeeter;
-    NFTYeeter remoteYeeter;
+    NFTCatcher remoteCatcher;
     DepositRegistry reg;
     ERC721X localNFT;
     address public alice = address(0xaa);
@@ -28,8 +29,8 @@ contract NFTYeeterTest is Test {
     function setUp() public {
         reg = new DepositRegistry();
         yeeter = new NFTYeeter(localDomain, connext, transactingAssetId, address(reg));
-        remoteYeeter = new NFTYeeter(remoteDomain, connext, transactingAssetId, address(reg));
-        yeeter.setTrustedYeeter(remoteDomain, address(remoteYeeter));
+        remoteCatcher = new NFTCatcher(remoteDomain, connext, transactingAssetId, address(reg));
+        yeeter.setTrustedCatcher(remoteDomain, address(remoteCatcher));
         reg.setOperatorAuth(address(yeeter), true);
         localNFT = new ERC721X("TestMonkeys", "TST", address(0), localDomain);
         localNFT.mint(alice, 0, "testURI");
