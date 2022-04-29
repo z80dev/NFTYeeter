@@ -8,17 +8,13 @@ Makes use of:
 
 # Current architecture
 
-Right now there's a single contract tracking all state and handling all of the functionality described below, but this will be split up into single contracts that handle a specific responsibility.
-
-# Planned Architecture
-
 ## Deposits Registry
 
 Handles recording records of user deposits. Will track whether a currently deposited NFT is bridged to another chain. Updated on each deposit (`depositor` set to sender), each time an NFT is bridged out of its home chain (`bridged` set to true), and each time an NFT is bridged back to its home chain (`bridged` set to false). It is checked in `withdraw` to prevent withdrawal of currently bridged NFT.
 
 Both the Sender and Receiver contracts will interact with this contract in order to handle NFT deposits and withdrawals. Before bridging, users would interact with this contract by sending them their NFT via `safeTransferFrom`. They would then interact with it again to withdraw their NFT, if it is not currently bridged.
 
-## Sender Contract
+## NFTYeeter - Sender Contract
 
 This contract is entrusted with firing off transactions to bridge a users' NFTs across chains. 
 
@@ -36,6 +32,6 @@ To bridge an ERC721X, the Sender Contract constructs a payload identically to wh
 
 For this, we should implement ERC165 for ERC721X to be able to differentiate between ERC721X's and regular ERC721X contracts without maintaining a registry of ERC721X's.
 
-## Receiver Contract
+## NFTCatcher - Receiver Contract
 
 This contract is entrusted with deploying ERC721X contracts on the receiving chain and minting specific tokens when they are bridged. It does not need to interact with the Deposits Registry. It must simply mint, via `Create2`, an ERC721X with the data it receives, including the necessary `tokenURI`, `originChainId`, and `originAddress`
