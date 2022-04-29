@@ -37,7 +37,7 @@ interface INFTYeeter {
 ```
 
 
-This contract is entrusted with firing off transactions to bridge a users' NFTs across chains. 
+This contract is entrusted with firing off transactions to bridge a users' NFTs across chains, and recording in the DepositRegistry that the NFT has been bridged.
 
 ### Bridging a Native NFT 
 

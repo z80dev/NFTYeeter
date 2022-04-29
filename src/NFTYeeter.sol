@@ -59,16 +59,16 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
         string tokenURI;
     }
 
-    function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId) external {
+    function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) external {
         // need to check here and differentiate between native NFTs and ERC721X
         require(ERC721(collection).ownerOf(tokenId) == registry, "NOT_IN_REGISTRY");
         (address depositor, bool bridged) = IDepositRegistry(registry).deposits(collection, tokenId);
         require(depositor == msg.sender, "NOT_DEPOSITOR");
         require(bridged == false, "ALREADY_BRIDGED");
-        _bridgeToken(collection, tokenId, recipient, dstChainId);
+        _bridgeToken(collection, tokenId, recipient, dstChainId, relayerFee);
     }
 
-    function _bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId) internal {
+    function _bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) internal {
         address dstCatcher = trustedCatcher[dstChainId];
         require(dstCatcher != address(0), "Chain not supported");
         ERC721 nft = ERC721(collection);
@@ -93,7 +93,7 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
                 params: callParams,
                 transactingAssetId: transactingAssetId,
                 amount: 0,
-                relayerFee: 0
+                relayerFee: relayerFee
             });
         IConnextHandler(connext).xcall(xcallArgs);
         // record that this NFT has been bridged

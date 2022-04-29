@@ -40,14 +40,14 @@ contract NFTYeeterTest is Test {
         vm.startPrank(alice);
         localNFT.safeTransferFrom(alice, address(reg), 0);
         vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
-        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain);
+        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
         (address depositor, bool bridged) = reg.deposits(address(localNFT), 0);
         assertEq(depositor, alice);
         assertTrue(bridged);
 
         // test that we can't bridge it again
         vm.expectRevert("ALREADY_BRIDGED");
-        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain);
+        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
     }
 
 }
