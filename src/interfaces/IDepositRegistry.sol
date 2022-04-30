@@ -13,6 +13,13 @@ interface IDepositRegistry {
     }
 
     function withdraw(address collection, uint256 tokenId) external;
+
     function deposits(address, uint256) external returns (address, bool);
-    function setDetails(address collection, uint256 tokenId, address _owner, bool bridged) external;
+
+    function setDetails(
+        address collection,
+        uint256 tokenId,
+        address _owner,
+        bool bridged
+    ) external;
 }
