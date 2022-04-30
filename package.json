@@ -1,5 +1,5 @@
 {
-  "name": "NFTYeeter",
+  "name": "@ophiuchusdao/nftyeeter",
   "license": "AGPL-3.0-only",
   "version": "6.2.0",
   "description": "Modern, opinionated and gas optimized building blocks for smart contract development.",
