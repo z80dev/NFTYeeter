@@ -37,13 +37,13 @@ contract NFTYeeterTest is Test {
 
 
     function setUp() public {
+        localNFT = new ERC721X("TestMonkeys", "TST", address(0), localDomain);
         reg = new DepositRegistry();
         yeeter = new NFTYeeter(localDomain, connext, transactingAssetId, address(reg));
         remoteCatcher = new NFTCatcher(remoteDomain, connext, transactingAssetId, address(reg));
         yeeter.setTrustedCatcher(remoteDomain, address(remoteCatcher));
         remoteCatcher.setTrustedYeeter(localDomain, address(yeeter));
         reg.setOperatorAuth(address(yeeter), true);
-        localNFT = new ERC721X("TestMonkeys", "TST", address(0), localDomain);
         localNFT.mint(alice, 0, "testURI");
     }
 
@@ -55,6 +55,7 @@ contract NFTYeeterTest is Test {
         (address depositor, bool bridged) = reg.deposits(address(localNFT), 0);
         assertEq(depositor, alice);
         assertTrue(bridged);
+
 
         // test that we can't bridge it again
         vm.expectRevert("ALREADY_BRIDGED");

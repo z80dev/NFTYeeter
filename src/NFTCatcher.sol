@@ -7,6 +7,7 @@ import "ERC721X/ERC721X.sol";
 import "ERC721X/ERC721XInitializable.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "openzeppelin-contracts/contracts/utils/Address.sol";
+import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "./interfaces/IDepositRegistry.sol";
@@ -19,6 +20,7 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
     address private immutable transactingAssetId;
     address public owner;
     address public registry;
+    address public erc721xImplementation;
 
     mapping(uint32 => address) public trustedYeeters; // remote addresses of other yeeters, though ideally
                                                // we would want them all to have the same address. still, some may upgrade
@@ -28,6 +30,7 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
         connext = _connext;
         transactingAssetId = _transactingAssetId;
         registry = _registry;
+        erc721xImplementation = address(new ERC721XInitializable());
     }
 
     function setRegistry(address newRegistry) external {
@@ -62,8 +65,7 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
 
     function _calculateCreate2Address(uint32 chainId, address originAddress) internal view returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
-        bytes memory creationCode = type(ERC721XInitializable).creationCode;
-        return Create2.computeAddress(salt, keccak256(creationCode));
+        return Clones.predictDeterministicAddress(erc721xImplementation, salt);
     }
 
     function getLocalAddress(uint32 originChainId, address originAddress) external view returns (address) {
@@ -72,8 +74,7 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
 
     function _deployERC721X(uint32 chainId, address originAddress, string memory name, string memory symbol) internal returns (ERC721XInitializable) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
-        bytes memory creationCode = type(ERC721XInitializable).creationCode;
-        ERC721XInitializable nft = ERC721XInitializable(Create2.deploy(0, salt, creationCode));
+        ERC721XInitializable nft = ERC721XInitializable(Clones.cloneDeterministic(erc721xImplementation, salt));
         nft.initialize(name, symbol, originAddress, chainId);
         return nft;
     }
