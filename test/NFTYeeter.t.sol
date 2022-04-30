@@ -15,7 +15,7 @@ contract NFTYeeterTest is Test {
     NFTYeeter yeeter;
     NFTCatcher remoteCatcher;
     DepositRegistry reg;
-    ERC721X localNFT;
+    ERC721XInitializable localNFT;
     address public alice = address(0xaa);
     address public bob = address(0xbb);
     address public charlie = address(0xcc);
@@ -43,7 +43,8 @@ contract NFTYeeterTest is Test {
         yeeter.setTrustedCatcher(remoteDomain, address(remoteCatcher));
         remoteCatcher.setTrustedYeeter(localDomain, address(yeeter));
         reg.setOperatorAuth(address(yeeter), true);
-        localNFT = new ERC721X("TestMonkeys", "TST", address(0), localDomain);
+        localNFT = new ERC721XInitializable();
+        localNFT.initialize("TestMonkeys", "TST", address(0), localDomain);
         localNFT.mint(alice, 0, "testURI");
     }
 
