@@ -2,6 +2,7 @@
 pragma solidity ^0.8.11;
 
 import "solmate/tokens/ERC721.sol";
+import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";
@@ -61,14 +62,24 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
 
     function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) external {
         // need to check here and differentiate between native NFTs and ERC721X
-        require(ERC721(collection).ownerOf(tokenId) == registry, "NOT_IN_REGISTRY");
-        (address depositor, bool bridged) = IDepositRegistry(registry).deposits(collection, tokenId);
-        require(depositor == msg.sender, "NOT_DEPOSITOR");
-        require(bridged == false, "ALREADY_BRIDGED");
-        _bridgeToken(collection, tokenId, recipient, dstChainId, relayerFee);
+        require(ERC721(collection).ownerOf(tokenId) == registry, "NOT_IN_REGISTRY"); // may not need to require this step for ERC721Xs, could be cool
+        if (IERC165(collection).supportsInterface(IERC721X.originChainId.selector)) {
+            // ERC721X
+            // check this ERC721X address matches what this contract would generate for its originChainId and originAddress
+            // either call the Catcher... or move that logic into the registry
+            // start counting these cross-chain calls and consider the diamond pattern
+            ERC721X nft = ERC721X(collection);
+
+            // _bridgeXToken(...); // similar to bridgeNativeToken but use originAddress, originChainId, etc.
+        } else {
+            (address depositor, bool bridged) = IDepositRegistry(registry).deposits(collection, tokenId);
+            require(depositor == msg.sender, "NOT_DEPOSITOR");
+            require(bridged == false, "ALREADY_BRIDGED");
+            _bridgeNativeToken(collection, tokenId, recipient, dstChainId, relayerFee);
+        }
     }
 
-    function _bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) internal {
+    function _bridgeNativeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) internal {
         address dstCatcher = trustedCatcher[dstChainId];
         require(dstCatcher != address(0), "Chain not supported");
         ERC721 nft = ERC721(collection);
