@@ -6,6 +6,7 @@ import "forge-std/console.sol";
 import "../src/NFTYeeter.sol";
 import "../src/NFTCatcher.sol";
 import "../src/DepositRegistry.sol";
+import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "solmate/tokens/ERC721.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
@@ -33,6 +34,7 @@ contract NFTYeeterTest is Test {
     NFTCatcher remoteCatcher;
     DummyNFT dumbNFT;
     DepositRegistry reg;
+    address public erc721xImplementation;
     ERC721XInitializable localNFT;
     address public alice = address(0xaa);
     address public bob = address(0xbb);
@@ -59,12 +61,16 @@ contract NFTYeeterTest is Test {
         yeeter = new NFTYeeter(localDomain, connext, transactingAssetId, address(reg));
         remoteCatcher = new NFTCatcher(remoteDomain, connext, transactingAssetId, address(reg));
         yeeter.setTrustedCatcher(remoteDomain, address(remoteCatcher));
-        yeeter.setDeployer(remoteCatcher);
         remoteCatcher.setTrustedYeeter(localDomain, address(yeeter));
         reg.setOperatorAuth(address(yeeter), true);
+        reg.setOperatorAuth(address(remoteCatcher), true);
         dumbNFT = new DummyNFT();
         dumbNFT.mint(alice, 0);
-        localNFT = new ERC721XInitializable();
+        erc721xImplementation = address(new ERC721XInitializable());
+        bytes32 salt = keccak256(abi.encodePacked(uint32(1), address(0x0a0a)));
+        localNFT = ERC721XInitializable(
+            Clones.cloneDeterministic(erc721xImplementation, salt)
+        );
         localNFT.initialize("TestMonkeys", "TST", address(0), localDomain);
         localNFT.mint(alice, 0, "testURI");
     }
@@ -110,7 +116,7 @@ contract NFTYeeterTest is Test {
                                            "testURI"
                                                 ));
         remoteCatcher.receiveAsset(details);
-        ERC721XInitializable remoteNFT = ERC721XInitializable(remoteCatcher.getLocalAddress(localDomain, address(dumbNFT)));
+        ERC721XInitializable remoteNFT = ERC721XInitializable(reg.getLocalAddress(localDomain, address(dumbNFT)));
 
         assertEq(keccak256(abi.encodePacked(remoteNFT.name())), keccak256("Dummy NFT"));
         assertEq(keccak256(abi.encodePacked(remoteNFT.symbol())), keccak256("DUM"));

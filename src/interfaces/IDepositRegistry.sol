@@ -16,6 +16,17 @@ interface IDepositRegistry {
 
     function deposits(address, uint256) external returns (address, bool);
 
+    function mint(address collection, uint256 tokenId, string memory tokenURI, address recipient) external;
+
+    function burn(address collection, uint256 tokenId) external;
+
+    function deployERC721X(uint32 originChainId, address originAddress, string memory name, string memory symbol) external returns (address);
+
+    function getLocalAddress(uint32 originChainId, address originAddress)
+        external
+        view
+        returns (address);
+
     function setDetails(
         address collection,
         uint256 tokenId,

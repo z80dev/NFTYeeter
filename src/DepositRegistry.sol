@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import "solmate/tokens/ERC721.sol";
+import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "./interfaces/IDepositRegistry.sol";
+import "ERC721X/ERC721XInitializable.sol";
 import "ERC721X/MinimalOwnable.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
@@ -11,9 +13,12 @@ contract DepositRegistry is
     MinimalOwnable
 {
     mapping(address => bool) operatorAuth;
+    address public erc721xImplementation;
     mapping(address => mapping(uint256 => DepositDetails)) public deposits; // deposits[collection][tokenId] = depositor
 
-    constructor() MinimalOwnable() {}
+    constructor() MinimalOwnable() {
+        erc721xImplementation = address(new ERC721XInitializable());
+    }
 
     function setOperatorAuth(address operator, bool auth) external {
         require(msg.sender == _owner);
@@ -32,6 +37,42 @@ contract DepositRegistry is
             details.depositor = _owner;
         }
         details.bridged = bridged;
+    }
+
+    function mint(address collection, uint256 tokenId, string memory tokenURI, address recipient) external {
+        require(operatorAuth[msg.sender], "UNAUTH");
+        ERC721XInitializable(collection).mint(recipient, tokenId, tokenURI);
+    }
+
+    function burn(address collection, uint256 tokenId) external {
+        require(operatorAuth[msg.sender], "UNAUTH");
+        ERC721XInitializable(collection).burn(tokenId);
+    }
+
+    function _calculateCreate2Address(uint32 chainId, address originAddress)
+        internal
+        view
+        returns (address)
+    {
+        bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
+        return Clones.predictDeterministicAddress(erc721xImplementation, salt);
+    }
+
+    function getLocalAddress(uint32 originChainId, address originAddress)
+        external
+        view
+        returns (address)
+    {
+        return _calculateCreate2Address(originChainId, originAddress);
+    }
+
+    function deployERC721X(uint32 chainId, address originAddress, string memory name, string memory symbol) external returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
+        ERC721XInitializable nft = ERC721XInitializable(
+            Clones.cloneDeterministic(erc721xImplementation, salt)
+        );
+        nft.initialize(name, symbol, originAddress, chainId);
+        return address(nft);
     }
 
     function withdraw(address collection, uint256 tokenId) external {

@@ -3,7 +3,6 @@ pragma solidity ^0.8.11;
 
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
-import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";
@@ -20,7 +19,6 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
     address private immutable transactingAssetId;
     address public owner;
     address public registry;
-    INFTCatcher public localDeployer;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
     mapping(uint32 => address) public trustedCatcher; // remote addresses of other yeeters, though ideally
@@ -37,11 +35,6 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
         connext = _connext;
         transactingAssetId = _transactingAssetId;
         registry = _registry;
-    }
-
-    function setDeployer(INFTCatcher deployer) external {
-        require(msg.sender == _owner);
-        localDeployer = deployer;
     }
 
     function setRegistry(address newRegistry) external {
@@ -87,11 +80,10 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
             "NOT_IN_REGISTRY"
         ); // may not need to require this step for ERC721Xs, could be cool
         if (IERC165(collection).supportsInterface(IERC721XInterfaceID)) {
-            require(address(localDeployer) != address(0), "NO_DEPLYR");
             ERC721X nft = ERC721X(collection);
             require(
                 collection ==
-                    localDeployer.getLocalAddress(
+                    IDepositRegistry(registry).getLocalAddress(
                         nft.originChainId(),
                         nft.originAddress()
                     ),
