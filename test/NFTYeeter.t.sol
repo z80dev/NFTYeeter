@@ -69,6 +69,16 @@ contract NFTYeeterTest is Test {
         localNFT.mint(alice, 0, "testURI");
     }
 
+    function testYeeterRejectsCounterfeits() public {
+        // check we can't bridge an ERC721X not deployed by us
+        vm.startPrank(alice);
+        localNFT.safeTransferFrom(alice, address(reg), 0);
+        assertTrue(localNFT.supportsInterface(0xefd00bbc));
+        vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
+        vm.expectRevert("NOT_AUTHENTIC");
+        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
+    }
+
     function testYeeterWillBridge() public {
         vm.startPrank(alice);
         dumbNFT.safeTransferFrom(alice, address(reg), 0);
