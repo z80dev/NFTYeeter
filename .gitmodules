@@ -4,12 +4,12 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/Rari-Capital/solmate
-[submodule "lib/ERC721X"]
-	path = lib/ERC721X
-	url = https://github.com/OphiuchusDAO/ERC721X
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 [submodule "lib/nxtp"]
 	path = lib/nxtp
 	url = https://github.com/connext/nxtp
+[submodule "lib/ERC721X"]
+	path = lib/ERC721X
+	url = https://github.com/OphiuchusDAO/ERC721X
