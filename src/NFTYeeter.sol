@@ -19,6 +19,7 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
     address private immutable transactingAssetId;
     address public owner;
     address public registry;
+    bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
     mapping(uint32 => address) public trustedCatcher; // remote addresses of other yeeters, though ideally
                                                // we would want them all to have the same address. still, some may upgrade
@@ -63,7 +64,7 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
     function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) external {
         // need to check here and differentiate between native NFTs and ERC721X
         require(ERC721(collection).ownerOf(tokenId) == registry, "NOT_IN_REGISTRY"); // may not need to require this step for ERC721Xs, could be cool
-        if (IERC165(collection).supportsInterface(IERC721X.originChainId.selector)) {
+        if (IERC165(collection).supportsInterface(IERC721XInterfaceID)) {
             // ERC721X
             // check this ERC721X address matches what this contract would generate for its originChainId and originAddress
             // either call the Catcher... or move that logic into the registry

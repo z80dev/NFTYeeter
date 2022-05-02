@@ -2,6 +2,7 @@
 pragma solidity ^0.8.11;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import "../src/NFTYeeter.sol";
 import "../src/NFTCatcher.sol";
 import "../src/DepositRegistry.sol";
@@ -51,6 +52,7 @@ contract NFTYeeterTest is Test {
     function testYeeterWillBridge() public {
         vm.startPrank(alice);
         localNFT.safeTransferFrom(alice, address(reg), 0);
+        assertTrue(localNFT.supportsInterface(0xefd00bbc));
         vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
         yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
         (address depositor, bool bridged) = reg.deposits(address(localNFT), 0);
