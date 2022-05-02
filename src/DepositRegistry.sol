@@ -1,40 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import "solmate/tokens/ERC721.sol";
 import "./interfaces/IDepositRegistry.sol";
+import "ERC721X/MinimalOwnable.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 
-contract DepositRegistry is IDepositRegistry, ERC721TokenReceiver  {
-
-    address public owner;
+contract DepositRegistry is IDepositRegistry, ERC721TokenReceiver, MinimalOwnable {
 
     mapping(address => bool) operatorAuth;
     mapping(address => mapping(uint256 => DepositDetails)) public deposits; // deposits[collection][tokenId] = depositor
-    address public immutable localDeployer;
 
-    constructor() {
-        owner = msg.sender;
-    }
-
-    function setDeployer(address deployer) external {
-        require(msg.sender == owner);
-        localDeployer = deployer;
-    }
-
-    function setOwner(address newOwner) external {
-        require(msg.sender == owner);
-        owner = newOwner;
+    constructor() MinimalOwnable() {
     }
 
     function setOperatorAuth(address operator, bool auth) external {
-        require(msg.sender == owner);
+        require(msg.sender == _owner);
         operatorAuth[operator] = auth;
     }
 
     function setDetails(address collection, uint256 tokenId, address _owner, bool bridged) external {
-        require(msg.sender == owner || operatorAuth[msg.sender]);
+        require(msg.sender == _owner || operatorAuth[msg.sender]);
         DepositDetails storage details = deposits[collection][tokenId];
-        if (owner != address(0x0)) {
+        if (_owner != address(0x0)) {
             details.depositor = _owner;
         }
         details.bridged = bridged;

@@ -8,10 +8,10 @@ import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";
 import "ERC721X/ERC721X.sol";
+import "ERC721X/MinimalOwnable.sol";
 import "./interfaces/IDepositRegistry.sol";
 import "./interfaces/INFTYeeter.sol";
 import "./NFTCatcher.sol";
-import "./MinimalOwnable.sol";
 
 contract NFTYeeter is INFTYeeter, MinimalOwnable {
 

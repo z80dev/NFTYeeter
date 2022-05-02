@@ -2,8 +2,8 @@
 
 pragma solidity >=0.8.7 <0.9.0;
 
-import "./MinimalOwnable.sol";
 import "ERC721X/ERC721X.sol";
+import "ERC721X/MinimalOwnable.sol";
 import "ERC721X/ERC721XInitializable.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "openzeppelin-contracts/contracts/utils/Address.sol";
