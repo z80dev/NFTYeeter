@@ -3,6 +3,7 @@ pragma solidity ^0.8.11;
 
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
+import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";

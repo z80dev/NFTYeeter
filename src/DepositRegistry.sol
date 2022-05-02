@@ -10,9 +10,15 @@ contract DepositRegistry is IDepositRegistry, ERC721TokenReceiver  {
 
     mapping(address => bool) operatorAuth;
     mapping(address => mapping(uint256 => DepositDetails)) public deposits; // deposits[collection][tokenId] = depositor
+    address public immutable localDeployer;
 
     constructor() {
         owner = msg.sender;
+    }
+
+    function setDeployer(address deployer) external {
+        require(msg.sender == owner);
+        localDeployer = deployer;
     }
 
     function setOwner(address newOwner) external {
