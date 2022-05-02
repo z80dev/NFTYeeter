@@ -11,25 +11,37 @@ import "ERC721X/ERC721X.sol";
 import "ERC721X/MinimalOwnable.sol";
 import "./interfaces/IDepositRegistry.sol";
 import "./interfaces/INFTYeeter.sol";
+import "./interfaces/INFTCatcher.sol";
 import "./NFTCatcher.sol";
 
 contract NFTYeeter is INFTYeeter, MinimalOwnable {
-
     uint32 public immutable localDomain;
     address public immutable connext;
     address private immutable transactingAssetId;
     address public owner;
     address public registry;
+    INFTCatcher public localDeployer;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
     mapping(uint32 => address) public trustedCatcher; // remote addresses of other yeeters, though ideally
-                                               // we would want them all to have the same address. still, some may upgrade
 
-    constructor(uint32 _localDomain, address _connext, address _transactingAssetId, address _registry) MinimalOwnable() {
+    // we would want them all to have the same address. still, some may upgrade
+
+    constructor(
+        uint32 _localDomain,
+        address _connext,
+        address _transactingAssetId,
+        address _registry
+    ) MinimalOwnable() {
         localDomain = _localDomain;
         connext = _connext;
         transactingAssetId = _transactingAssetId;
         registry = _registry;
+    }
+
+    function setDeployer(INFTCatcher deployer) external {
+        require(msg.sender == _owner);
+        localDeployer = deployer;
     }
 
     function setRegistry(address newRegistry) external {
@@ -62,55 +74,111 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
         string tokenURI;
     }
 
-    function bridgeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) external {
+    function bridgeToken(
+        address collection,
+        uint256 tokenId,
+        address recipient,
+        uint32 dstChainId,
+        uint256 relayerFee
+    ) external {
         // need to check here and differentiate between native NFTs and ERC721X
-        require(ERC721(collection).ownerOf(tokenId) == registry, "NOT_IN_REGISTRY"); // may not need to require this step for ERC721Xs, could be cool
+        require(
+            ERC721(collection).ownerOf(tokenId) == registry,
+            "NOT_IN_REGISTRY"
+        ); // may not need to require this step for ERC721Xs, could be cool
         if (IERC165(collection).supportsInterface(IERC721XInterfaceID)) {
+            require(address(localDeployer) != address(0), "NO_DEPLYR");
+            ERC721X nft = ERC721X(collection);
+            require(
+                collection ==
+                    localDeployer.getLocalAddress(
+                        nft.originChainId(),
+                        nft.originAddress()
+                    ),
+                "NOT_AUTHENTIC"
+            );
             // ERC721X
             // check this ERC721X address matches what this contract would generate for its originChainId and originAddress
             // either call the Catcher... or move that logic into the registry
             // start counting these cross-chain calls and consider the diamond pattern
-            ERC721X nft = ERC721X(collection);
 
             // _bridgeXToken(...); // similar to bridgeNativeToken but use originAddress, originChainId, etc.
+            //
+            BridgedTokenDetails memory details = BridgedTokenDetails(
+                nft.originChainId(),
+                nft.originAddress(),
+                tokenId,
+                recipient,
+                nft.name(),
+                nft.symbol(),
+                nft.tokenURI(tokenId)
+            );
+            _bridgeToken(details, dstChainId, relayerFee);
         } else {
-            (address depositor, bool bridged) = IDepositRegistry(registry).deposits(collection, tokenId);
+            (address depositor, bool bridged) = IDepositRegistry(registry)
+                .deposits(collection, tokenId);
             require(depositor == msg.sender, "NOT_DEPOSITOR");
             require(bridged == false, "ALREADY_BRIDGED");
-            _bridgeNativeToken(collection, tokenId, recipient, dstChainId, relayerFee);
+            _bridgeNativeToken(
+                collection,
+                tokenId,
+                recipient,
+                dstChainId,
+                relayerFee
+            );
         }
     }
 
-    function _bridgeNativeToken(address collection, uint256 tokenId, address recipient, uint32 dstChainId, uint256 relayerFee) internal {
+    function _bridgeToken(
+        BridgedTokenDetails memory details,
+        uint32 dstChainId,
+        uint256 relayerFee
+    ) internal {
         address dstCatcher = trustedCatcher[dstChainId];
         require(dstCatcher != address(0), "Chain not supported");
-        ERC721 nft = ERC721(collection);
         bytes4 selector = NFTCatcher.receiveAsset.selector;
-        BridgedTokenDetails memory details = BridgedTokenDetails(
-                                                                 localDomain,
-                                                                 collection,
-                                                                 tokenId,
-                                                                 recipient,
-                                                                 nft.name(),
-                                                                 nft.symbol(),
-                                                                 nft.tokenURI(tokenId)
-        );
         bytes memory payload = abi.encodeWithSelector(selector, details);
-        IConnextHandler.CallParams memory callParams = IConnextHandler.CallParams({
+        IConnextHandler.CallParams memory callParams = IConnextHandler
+            .CallParams({
                 to: dstCatcher,
                 callData: payload,
                 originDomain: localDomain,
                 destinationDomain: dstChainId
             });
         IConnextHandler.XCallArgs memory xcallArgs = IConnextHandler.XCallArgs({
-                params: callParams,
-                transactingAssetId: transactingAssetId,
-                amount: 0,
-                relayerFee: relayerFee
-            });
+            params: callParams,
+            transactingAssetId: transactingAssetId,
+            amount: 0,
+            relayerFee: relayerFee
+        });
         IConnextHandler(connext).xcall(xcallArgs);
         // record that this NFT has been bridged
-        IDepositRegistry(registry).setDetails(collection, tokenId, recipient, true);
     }
 
+    function _bridgeNativeToken(
+        address collection,
+        uint256 tokenId,
+        address recipient,
+        uint32 dstChainId,
+        uint256 relayerFee
+    ) internal {
+        ERC721 nft = ERC721(collection);
+        BridgedTokenDetails memory details = BridgedTokenDetails(
+            localDomain,
+            collection,
+            tokenId,
+            recipient,
+            nft.name(),
+            nft.symbol(),
+            nft.tokenURI(tokenId)
+        );
+        _bridgeToken(details, dstChainId, relayerFee);
+        IDepositRegistry(registry).setDetails(
+            collection,
+            tokenId,
+            recipient,
+            true
+        );
+
+    }
 }

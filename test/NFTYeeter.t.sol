@@ -6,15 +6,32 @@ import "forge-std/console.sol";
 import "../src/NFTYeeter.sol";
 import "../src/NFTCatcher.sol";
 import "../src/DepositRegistry.sol";
+import "solmate/tokens/ERC721.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/ERC721X.sol";
 import "ERC721X/ERC721XInitializable.sol";
 
+contract DummyNFT is ERC721 {
+
+    constructor() ERC721("Dummy NFT", "DUM") {
+
+    }
+
+    function tokenURI(uint256 id) public view override returns (string memory) {
+        return "testURI";
+    }
+
+    function mint(address recipient, uint256 tokenId) external {
+        _safeMint(recipient, tokenId);
+    }
+}
+
 contract NFTYeeterTest is Test {
 
     NFTYeeter yeeter;
     NFTCatcher remoteCatcher;
+    DummyNFT dumbNFT;
     DepositRegistry reg;
     ERC721XInitializable localNFT;
     address public alice = address(0xaa);
@@ -42,8 +59,11 @@ contract NFTYeeterTest is Test {
         yeeter = new NFTYeeter(localDomain, connext, transactingAssetId, address(reg));
         remoteCatcher = new NFTCatcher(remoteDomain, connext, transactingAssetId, address(reg));
         yeeter.setTrustedCatcher(remoteDomain, address(remoteCatcher));
+        yeeter.setDeployer(remoteCatcher);
         remoteCatcher.setTrustedYeeter(localDomain, address(yeeter));
         reg.setOperatorAuth(address(yeeter), true);
+        dumbNFT = new DummyNFT();
+        dumbNFT.mint(alice, 0);
         localNFT = new ERC721XInitializable();
         localNFT.initialize("TestMonkeys", "TST", address(0), localDomain);
         localNFT.mint(alice, 0, "testURI");
@@ -51,40 +71,39 @@ contract NFTYeeterTest is Test {
 
     function testYeeterWillBridge() public {
         vm.startPrank(alice);
-        localNFT.safeTransferFrom(alice, address(reg), 0);
-        assertTrue(localNFT.supportsInterface(0xefd00bbc));
+        dumbNFT.safeTransferFrom(alice, address(reg), 0);
+        assertTrue(!dumbNFT.supportsInterface(0xefd00bbc));
         vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
-        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
-        (address depositor, bool bridged) = reg.deposits(address(localNFT), 0);
+        yeeter.bridgeToken(address(dumbNFT), 0, alice, remoteDomain, 0);
+        (address depositor, bool bridged) = reg.deposits(address(dumbNFT), 0);
         assertEq(depositor, alice);
         assertTrue(bridged);
 
 
         // test that we can't bridge it again
         vm.expectRevert("ALREADY_BRIDGED");
-        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
+        yeeter.bridgeToken(address(dumbNFT), 0, alice, remoteDomain, 0);
 
         vm.stopPrank();
 
-        vm.prank(connext);
+        vm.startPrank(connext);
         vm.mockCall(connext, abi.encodePacked(IExecutor.origin.selector), abi.encode(localDomain));
         vm.mockCall(connext, abi.encodePacked(IExecutor.originSender.selector), abi.encode(address(yeeter)));
 
         bytes memory details = abi.encode(BridgedTokenDetails(
                                            localDomain,
-                                           address(localNFT),
+                                           address(dumbNFT),
                                            0,
                                            alice,
-                                           "TestMonkeys",
-                                           "TST",
+                                           dumbNFT.name(),
+                                           dumbNFT.symbol(),
                                            "testURI"
                                                 ));
         remoteCatcher.receiveAsset(details);
-        ERC721XInitializable remoteNFT = ERC721XInitializable(remoteCatcher.getLocalAddress(localDomain, address(localNFT)));
+        ERC721XInitializable remoteNFT = ERC721XInitializable(remoteCatcher.getLocalAddress(localDomain, address(dumbNFT)));
 
-        // remoteNFT.name();
-        assertEq(keccak256(abi.encodePacked(remoteNFT.name())), keccak256("TestMonkeys"));
-        assertEq(keccak256(abi.encodePacked(remoteNFT.symbol())), keccak256("TST"));
+        assertEq(keccak256(abi.encodePacked(remoteNFT.name())), keccak256("Dummy NFT"));
+        assertEq(keccak256(abi.encodePacked(remoteNFT.symbol())), keccak256("DUM"));
         assertEq(keccak256(abi.encodePacked(remoteNFT.tokenURI(0))), keccak256("testURI"));
         assertEq(remoteNFT.ownerOf(0), alice);
     }

@@ -14,7 +14,6 @@ import "./interfaces/IDepositRegistry.sol";
 import "./interfaces/INFTCatcher.sol";
 
 contract NFTCatcher is INFTCatcher, MinimalOwnable {
-
     uint32 public immutable localDomain;
     address public immutable connext;
     address private immutable transactingAssetId;
@@ -23,9 +22,15 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
     address public erc721xImplementation;
 
     mapping(uint32 => address) public trustedYeeters; // remote addresses of other yeeters, though ideally
-                                               // we would want them all to have the same address. still, some may upgrade
 
-    constructor(uint32 _localDomain, address _connext, address _transactingAssetId, address _registry) MinimalOwnable() {
+    // we would want them all to have the same address. still, some may upgrade
+
+    constructor(
+        uint32 _localDomain,
+        address _connext,
+        address _transactingAssetId,
+        address _registry
+    ) MinimalOwnable() {
         localDomain = _localDomain;
         connext = _connext;
         transactingAssetId = _transactingAssetId;
@@ -63,18 +68,33 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
         string tokenURI;
     }
 
-    function _calculateCreate2Address(uint32 chainId, address originAddress) internal view returns (address) {
+    function _calculateCreate2Address(uint32 chainId, address originAddress)
+        internal
+        view
+        returns (address)
+    {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
         return Clones.predictDeterministicAddress(erc721xImplementation, salt);
     }
 
-    function getLocalAddress(uint32 originChainId, address originAddress) external view returns (address) {
+    function getLocalAddress(uint32 originChainId, address originAddress)
+        external
+        view
+        returns (address)
+    {
         return _calculateCreate2Address(originChainId, originAddress);
     }
 
-    function _deployERC721X(uint32 chainId, address originAddress, string memory name, string memory symbol) internal returns (ERC721XInitializable) {
+    function _deployERC721X(
+        uint32 chainId,
+        address originAddress,
+        string memory name,
+        string memory symbol
+    ) internal returns (ERC721XInitializable) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
-        ERC721XInitializable nft = ERC721XInitializable(Clones.cloneDeterministic(erc721xImplementation, salt));
+        ERC721XInitializable nft = ERC721XInitializable(
+            Clones.cloneDeterministic(erc721xImplementation, salt)
+        );
         nft.initialize(name, symbol, originAddress, chainId);
         return nft;
     }
@@ -89,27 +109,40 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
         address remoteCaller = IExecutor(msg.sender).originSender();
         require(trustedYeeters[remoteChainId] == remoteCaller, "UNAUTH");
 
-        (BridgedTokenDetails memory details) = abi.decode(_payload, (BridgedTokenDetails));
+        BridgedTokenDetails memory details = abi.decode(
+            _payload,
+            (BridgedTokenDetails)
+        );
 
         if (details.originChainId == localDomain) {
             // we're bridging this NFT *back* home
-            IDepositRegistry(registry).setDetails(details.originAddress, details.tokenId, details.owner, false);
-
+            IDepositRegistry(registry).setDetails(
+                details.originAddress,
+                details.tokenId,
+                details.owner,
+                false
+            );
         } else {
-            address localAddress = _calculateCreate2Address(details.originChainId, details.originAddress);
-            if (Address.isContract(localAddress)) { // this check will change after create2
+            address localAddress = _calculateCreate2Address(
+                details.originChainId,
+                details.originAddress
+            );
+            if (Address.isContract(localAddress)) {
+                // this check will change after create2
                 // local XERC721 contract exists, we just need to mint
                 ERC721X nft = ERC721X(localAddress);
                 nft.mint(details.owner, details.tokenId, details.tokenURI);
             } else {
                 // deploy new ERC721 contract
                 // this will also change w/ create2
-                ERC721XInitializable nft = _deployERC721X(details.originChainId, details.originAddress, details.name, details.symbol);
+                ERC721XInitializable nft = _deployERC721X(
+                    details.originChainId,
+                    details.originAddress,
+                    details.name,
+                    details.symbol
+                );
                 nft.mint(details.owner, details.tokenId, details.tokenURI);
             }
         }
-
-
     }
-
 }

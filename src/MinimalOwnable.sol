@@ -6,7 +6,6 @@ pragma solidity >=0.8.7 <0.9.0;
 // not meant to be extremely useful, just to save me typing
 
 contract MinimalOwnable {
-
     address public _owner;
 
     constructor() {
@@ -17,5 +16,4 @@ contract MinimalOwnable {
         require(_owner == msg.sender);
         _owner = newOwner;
     }
-
 }
