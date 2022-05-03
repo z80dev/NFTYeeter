@@ -47,7 +47,7 @@ The sender contract checks with the Deposits Registry that the user firing off t
 
 ### Bridging an ERC721X
 
-In this case, the Sender Contract has no need to check with the Deposit Registry whether the NFT can be bridged or who the depositor is. That information is only relevant in the case of bridging a Native NFT. 
+In this case, the Sender Contract has no need to check with the Deposit Registry whether the NFT can be bridged or who the depositor is. That information is only relevant in the case of bridging a Native NFT.     
 
 To bridge an ERC721X, the Sender Contract constructs a payload identically to when bridging a native NFT, but using the data from the ERC721X. For example, rather than using the Sender Contract's `localChainId`, it passes along the `originChainId` from the ERC721X contract.
 
@@ -64,3 +64,8 @@ interface INFTCatcher {
 
 
 This contract is entrusted with deploying ERC721X contracts on the receiving chain and minting specific tokens when they are bridged. It does not need to interact with the Deposits Registry. It must simply mint, via `Create2`, an ERC721X with the data it receives, including the necessary `tokenURI`, `originChainId`, and `originAddress`
+
+
+# Deployment instructions
+
+Find deployment instructions [here](DEPLOY.md)
