@@ -38,9 +38,9 @@ This contract accepts 4 constructor arguments:
 
 This is necessary to enable the Sender and Receiver contracts to trigger the minting or burning of ERC721Xs.
 
-`cast send --rpc-url=$RPC_URL <registryAddress>  "setOperatorAuth(address)" <senderAddress> --private-key=$PRIVATE_KEY`
+`cast send --rpc-url=$RPC_URL <registryAddress>  "setOperatorAuth(address, bool)" <senderAddress> true --private-key=$PRIVATE_KEY`
 
-`cast send --rpc-url=$RPC_URL <registryAddress>  "setOperatorAuth(address)" <receiverAddress> --private-key=$PRIVATE_KEY`
+`cast send --rpc-url=$RPC_URL <registryAddress>  "setOperatorAuth(address, bool)" <receiverAddress> true --private-key=$PRIVATE_KEY`
 
 
 ## Authorize Inter-Chain Communication
