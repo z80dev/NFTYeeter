@@ -8,7 +8,7 @@ import "../src/NFTCatcher.sol";
 import "../src/DepositRegistry.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "solmate/tokens/ERC721.sol";
-import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
+import {IConnext} from "nxtp/interfaces/IConnext.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/ERC721X.sol";
 import "ERC721X/ERC721XInitializable.sol";
@@ -80,7 +80,7 @@ contract NFTYeeterTest is Test {
         vm.startPrank(alice);
         localNFT.safeTransferFrom(alice, address(reg), 0);
         assertTrue(localNFT.supportsInterface(0xefd00bbc));
-        vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
+        vm.mockCall(connext, abi.encodePacked(IConnext.xcall.selector), abi.encode(0));
         vm.expectRevert("NOT_AUTHENTIC");
         yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
     }
@@ -89,7 +89,7 @@ contract NFTYeeterTest is Test {
         vm.startPrank(alice);
         dumbNFT.safeTransferFrom(alice, address(reg), 0);
         assertTrue(!dumbNFT.supportsInterface(0xefd00bbc));
-        vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
+        vm.mockCall(connext, abi.encodeWithSelector(IConnext.xcall.selector), abi.encode(0));
         yeeter.bridgeToken(address(dumbNFT), 0, alice, remoteDomain, 0);
         (address depositor, bool bridged) = reg.deposits(address(dumbNFT), 0);
         assertEq(depositor, alice);

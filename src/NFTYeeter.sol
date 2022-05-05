@@ -3,7 +3,7 @@ pragma solidity ^0.8.11;
 
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
-import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
+import {IConnext} from "nxtp/interfaces/IConnext.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";
 import "ERC721X/ERC721X.sol";
@@ -130,20 +130,20 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
         require(dstCatcher != address(0), "Chain not supported");
         bytes4 selector = NFTCatcher.receiveAsset.selector;
         bytes memory payload = abi.encodeWithSelector(selector, details);
-        IConnextHandler.CallParams memory callParams = IConnextHandler
+        IConnext.CallParams memory callParams = IConnext
             .CallParams({
                 to: dstCatcher,
                 callData: payload,
                 originDomain: localDomain,
                 destinationDomain: dstChainId
             });
-        IConnextHandler.XCallArgs memory xcallArgs = IConnextHandler.XCallArgs({
+        IConnext.XCallArgs memory xcallArgs = IConnext.XCallArgs({
             params: callParams,
             transactingAssetId: transactingAssetId,
-            amount: 0,
-            relayerFee: relayerFee
+            amount: 0
+            // relayerFee: relayerFee
         });
-        IConnextHandler(connext).xcall(xcallArgs);
+        IConnext(connext).xcall(xcallArgs);
         // record that this NFT has been bridged
     }
 
