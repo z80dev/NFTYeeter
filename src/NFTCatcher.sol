@@ -95,7 +95,12 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
             if (Address.isContract(localAddress)) {
                 // this check will change after create2
                 // local XERC721 contract exists, we just need to mint
-                IDepositRegistry(registry).mint(localAddress, details.tokenId, details.tokenURI, details.owner);
+                IDepositRegistry(registry).mint(
+                    localAddress,
+                    details.tokenId,
+                    details.tokenURI,
+                    details.owner
+                );
             } else {
                 // deploy new ERC721 contract
                 // this will also change w/ create2
@@ -105,7 +110,12 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
                     details.name,
                     details.symbol
                 );
-                IDepositRegistry(registry).mint(localAddress, details.tokenId, details.tokenURI, details.owner);
+                IDepositRegistry(registry).mint(
+                    localAddress,
+                    details.tokenId,
+                    details.tokenURI,
+                    details.owner
+                );
             }
         }
     }

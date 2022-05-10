@@ -130,13 +130,12 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
         require(dstCatcher != address(0), "Chain not supported");
         bytes4 selector = NFTCatcher.receiveAsset.selector;
         bytes memory payload = abi.encodeWithSelector(selector, details);
-        IConnext.CallParams memory callParams = IConnext
-            .CallParams({
-                to: dstCatcher,
-                callData: payload,
-                originDomain: localDomain,
-                destinationDomain: dstChainId
-            });
+        IConnext.CallParams memory callParams = IConnext.CallParams({
+            to: dstCatcher,
+            callData: payload,
+            originDomain: localDomain,
+            destinationDomain: dstChainId
+        });
         IConnext.XCallArgs memory xcallArgs = IConnext.XCallArgs({
             params: callParams,
             transactingAssetId: transactingAssetId,
@@ -171,6 +170,5 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
             recipient,
             true
         );
-
     }
 }

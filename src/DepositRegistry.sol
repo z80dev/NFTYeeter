@@ -39,7 +39,12 @@ contract DepositRegistry is
         details.bridged = bridged;
     }
 
-    function mint(address collection, uint256 tokenId, string memory tokenURI, address recipient) external {
+    function mint(
+        address collection,
+        uint256 tokenId,
+        string memory tokenURI,
+        address recipient
+    ) external {
         require(operatorAuth[msg.sender], "UNAUTH");
         ERC721XInitializable(collection).mint(recipient, tokenId, tokenURI);
     }
@@ -66,7 +71,12 @@ contract DepositRegistry is
         return _calculateCreate2Address(originChainId, originAddress);
     }
 
-    function deployERC721X(uint32 chainId, address originAddress, string memory name, string memory symbol) external returns (address) {
+    function deployERC721X(
+        uint32 chainId,
+        address originAddress,
+        string memory name,
+        string memory symbol
+    ) external returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
         ERC721XInitializable nft = ERC721XInitializable(
             Clones.cloneDeterministic(erc721xImplementation, salt)

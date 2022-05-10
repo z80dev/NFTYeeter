@@ -69,6 +69,10 @@ This contract is entrusted with deploying ERC721X contracts on the receiving cha
 
 This contract acts as a single universal NFT mover for the whole project. It will maintain a whitelist of allowed callers and allowed destinations. Its desinations may be managed via Default Framework's kernel.sol (Implementation TBD). For now, callers are whitelisted and they will specify where they're moving into by address.
 
+## ERC721XManager
+
+This contract is responsible for deployment of ERC721X contracts and minting of specific tokenIds when needed. Any time an ERC721X contract must be deployed, or a specific tokenId needs to be minted or burned, it should be done through the ERC721X manager. No other contract has the authority to perform these mints and burns.
+
 
 # Deployment instructions
 

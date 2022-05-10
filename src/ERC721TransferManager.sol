@@ -10,11 +10,9 @@ import "./MinimalOwnable.sol";
 pragma solidity >=0.8.7 <0.9.0;
 
 contract ERC721TransferManager is MinimalOwnable {
-
     mapping(address => bool) callerAuth;
 
-    constructor() MinimalOwnable() {
-    }
+    constructor() MinimalOwnable() {}
 
     function setCallerAuth(address caller, bool auth) external {
         require(msg.sender == _owner);
