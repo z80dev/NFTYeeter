@@ -16,7 +16,6 @@ import "./ERC721XManager.sol";
 import "./NFTBridgeBasePolicy.sol";
 
 contract NFTYeeter is INFTYeeter, NFTBridgeBasePolicy {
-
     // connext data
     address private immutable transactingAssetId; // this may change in the future
 
@@ -27,7 +26,7 @@ contract NFTYeeter is INFTYeeter, NFTBridgeBasePolicy {
         address _connext,
         address _transactingAssetId,
         address kernel_
-                ) NFTBridgeBasePolicy(_connext, localDomain, kernel_) {
+    ) NFTBridgeBasePolicy(_connext, localDomain, kernel_) {
         transactingAssetId = _transactingAssetId;
     }
 
@@ -43,11 +42,18 @@ contract NFTYeeter is INFTYeeter, NFTBridgeBasePolicy {
         // get address from kernel
         //
         // then call the function we need from it
-        mgr.safeTransferFrom(collection, msg.sender, address(registry), tokenId, bytes(""));
+        mgr.safeTransferFrom(
+            collection,
+            msg.sender,
+            address(registry),
+            tokenId,
+            bytes("")
+        );
         require(
-                ERC721(collection).ownerOf(tokenId) == address(registry),
+            ERC721(collection).ownerOf(tokenId) == address(registry),
             "NOT_IN_REGISTRY"
         ); // may not need to require this step for ERC721Xs, could be cool
+        ERC721XManager.BridgedTokenDetails memory details;
         if (IERC165(collection).supportsInterface(IERC721XInterfaceID)) {
             ERC721X nft = ERC721X(collection);
             require(
@@ -61,7 +67,7 @@ contract NFTYeeter is INFTYeeter, NFTBridgeBasePolicy {
 
             // _bridgeXToken(...); // similar to bridgeNativeToken but use originAddress, originChainId, etc.
             //
-            ERC721XManager.BridgedTokenDetails memory details = ERC721XManager.BridgedTokenDetails(
+            details = ERC721XManager.BridgedTokenDetails(
                 nft.originChainId(),
                 nft.originAddress(),
                 tokenId,
@@ -70,21 +76,23 @@ contract NFTYeeter is INFTYeeter, NFTBridgeBasePolicy {
                 nft.symbol(),
                 nft.tokenURI(tokenId)
             );
-            _bridgeToken(details, dstChainId, relayerFee);
 
             xmgr.burn(collection, tokenId); // burn local copy of tokenId now that its been bridged
         } else {
-            // we have already verified ownership via safeTransferFrom when
-            // moving the NFT into the registry, then checking registry
-            // ownership
-            _bridgeNativeToken(
+            ERC721 nft = ERC721(collection);
+
+            details = ERC721XManager.BridgedTokenDetails(
+                localDomain,
                 collection,
                 tokenId,
                 recipient,
-                dstChainId,
-                relayerFee
+                nft.name(),
+                nft.symbol(),
+                nft.tokenURI(tokenId)
             );
         }
+
+        _bridgeToken(details, dstChainId, relayerFee);
     }
 
     function _bridgeToken(
@@ -96,12 +104,13 @@ contract NFTYeeter is INFTYeeter, NFTBridgeBasePolicy {
         require(dstCatcher != address(0), "Chain not supported");
         bytes4 selector = NFTCatcher.receiveAsset.selector;
         bytes memory payload = abi.encodeWithSelector(selector, details);
-        IConnextHandler.CallParams memory callParams = IConnextHandler.CallParams({
-            to: dstCatcher,
-            callData: payload,
-            originDomain: localDomain,
-            destinationDomain: dstChainId
-        });
+        IConnextHandler.CallParams memory callParams = IConnextHandler
+            .CallParams({
+                to: dstCatcher,
+                callData: payload,
+                originDomain: localDomain,
+                destinationDomain: dstChainId
+            });
         IConnextHandler.XCallArgs memory xcallArgs = IConnextHandler.XCallArgs({
             params: callParams,
             transactingAssetId: transactingAssetId,
@@ -110,25 +119,5 @@ contract NFTYeeter is INFTYeeter, NFTBridgeBasePolicy {
         });
         connext.xcall(xcallArgs);
         // record that this NFT has been bridged
-    }
-
-    function _bridgeNativeToken(
-        address collection,
-        uint256 tokenId,
-        address recipient,
-        uint32 dstChainId,
-        uint256 relayerFee
-    ) internal {
-        ERC721 nft = ERC721(collection);
-        ERC721XManager.BridgedTokenDetails memory details = ERC721XManager.BridgedTokenDetails(
-            localDomain,
-            collection,
-            tokenId,
-            recipient,
-            nft.name(),
-            nft.symbol(),
-            nft.tokenURI(tokenId)
-        );
-        _bridgeToken(details, dstChainId, relayerFee);
     }
 }

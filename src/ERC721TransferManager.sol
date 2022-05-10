@@ -10,7 +10,6 @@ import "Default/Kernel.sol";
 pragma solidity >=0.8.7 <0.9.0;
 
 contract ERC721TransferManager is Module {
-
     constructor(Kernel kernel_) Module(kernel_) {}
 
     function KEYCODE() external pure override returns (bytes3) {
@@ -23,7 +22,7 @@ contract ERC721TransferManager is Module {
         address to,
         uint256 tokenId,
         bytes calldata data
-    ) onlyPolicy external {
+    ) external onlyPolicy {
         ERC721(collection).safeTransferFrom(from, to, tokenId, data);
     }
 }

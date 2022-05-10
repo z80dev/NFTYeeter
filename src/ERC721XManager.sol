@@ -12,7 +12,6 @@ import "Default/Kernel.sol";
 pragma solidity >=0.8.7 <0.9.0;
 
 contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
-
     struct BridgedTokenDetails {
         uint32 originChainId;
         address originAddress;
@@ -22,7 +21,6 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         string symbol;
         string tokenURI;
     }
-
 
     address public erc721xImplementation;
 
@@ -34,7 +32,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         return bytes3("XMG"); // XNFT Manager
     }
 
-    function burn(address collection, uint256 tokenId) onlyPolicy external {
+    function burn(address collection, uint256 tokenId) external onlyPolicy {
         ERC721XInitializable(collection).burn(tokenId);
     }
 
@@ -43,7 +41,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         uint256 tokenId,
         string memory tokenURI,
         address recipient
-    ) onlyPolicy external {
+    ) external onlyPolicy {
         ERC721XInitializable(collection).mint(recipient, tokenId, tokenURI);
     }
 

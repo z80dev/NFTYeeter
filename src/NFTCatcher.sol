@@ -13,7 +13,6 @@ import "./ERC721XManager.sol";
 import "./NFTBridgeBasePolicy.sol";
 
 contract NFTCatcher is INFTCatcher, NFTBridgeBasePolicy {
-
     address private immutable transactingAssetId;
 
     // we would want them all to have the same address. still, some may upgrade
@@ -30,7 +29,7 @@ contract NFTCatcher is INFTCatcher, NFTBridgeBasePolicy {
 
     // function called by remote contract
     // this signature maximizes future flexibility & backwards compatibility
-    function receiveAsset(bytes memory _payload) onlyConnext external {
+    function receiveAsset(bytes memory _payload) external onlyConnext {
         // check remote contract is trusted remote NFTYeeter
         uint32 remoteChainId = IExecutor(msg.sender).origin();
         address remoteCaller = IExecutor(msg.sender).originSender();
@@ -47,7 +46,13 @@ contract NFTCatcher is INFTCatcher, NFTBridgeBasePolicy {
             // we're bridging this NFT *back* home
             // remote copy has been burned
             // simply send local one from Registry to recipient
-            mgr.safeTransferFrom(details.originAddress, address(registry), details.owner, details.tokenId, bytes(""));
+            mgr.safeTransferFrom(
+                details.originAddress,
+                address(registry),
+                details.owner,
+                details.tokenId,
+                bytes("")
+            );
         } else {
             // this is a remote NFT bridged to this chain
 
@@ -65,7 +70,6 @@ contract NFTCatcher is INFTCatcher, NFTBridgeBasePolicy {
                     details.name,
                     details.symbol
                 );
-
             }
 
             // mint ERC721X for user
@@ -75,7 +79,6 @@ contract NFTCatcher is INFTCatcher, NFTBridgeBasePolicy {
                 details.tokenURI,
                 details.owner
             );
-
         }
     }
 }

@@ -6,7 +6,6 @@ import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
 import "ERC721X/MinimalOwnable.sol";
 
 abstract contract ConnextBaseXApp is MinimalOwnable {
-
     uint32 public immutable localDomain; // identifies our chain to other chains
 
     IConnextHandler public immutable connext;

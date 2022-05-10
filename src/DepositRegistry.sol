@@ -18,11 +18,13 @@ contract DepositRegistry is
         return bytes3("REG");
     }
 
-    constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {
-    }
+    constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {}
 
-    function withdraw(address collection, address recipient, uint256 tokenId) onlyPolicy external {
+    function withdraw(
+        address collection,
+        address recipient,
+        uint256 tokenId
+    ) external onlyPolicy {
         ERC721(collection).safeTransferFrom(address(this), recipient, tokenId);
     }
-
 }
