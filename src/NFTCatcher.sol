@@ -3,7 +3,6 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import "ERC721X/ERC721X.sol";
-import "ERC721X/MinimalOwnable.sol";
 import "ERC721X/ERC721XInitializable.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "openzeppelin-contracts/contracts/utils/Address.sol";
@@ -12,8 +11,9 @@ import "./interfaces/INFTCatcher.sol";
 import "Default/Kernel.sol";
 import "./ERC721TransferManager.sol";
 import "./ERC721XManager.sol";
+import "./ConnextBaseXApp.sol";
 
-contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
+contract NFTCatcher is INFTCatcher, ConnextBaseXApp, Policy {
     uint32 public immutable localDomain;
     address public immutable connext;
     address private immutable transactingAssetId;
@@ -21,8 +21,6 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
     address public owner;
     ERC721TransferManager private mgr;
     ERC721XManager private xmgr;
-
-    mapping(uint32 => address) public trustedYeeters; // remote addresses of other yeeters, though ideally
 
     // we would want them all to have the same address. still, some may upgrade
     //
@@ -37,15 +35,9 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
         address _connext,
         address _transactingAssetId,
         Kernel kernel_
-    ) MinimalOwnable() Policy(kernel_) {
+    ) ConnextBaseXApp(_connext) Policy(kernel_) {
         localDomain = _localDomain;
-        connext = _connext;
         transactingAssetId = _transactingAssetId;
-    }
-
-    function setTrustedYeeter(uint32 chainId, address yeeter) external {
-        require(msg.sender == _owner);
-        trustedYeeters[chainId] = yeeter;
     }
 
     // function called by remote contract
@@ -56,7 +48,7 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
         // check remote contract is trusted remote NFTYeeter
         uint32 remoteChainId = IExecutor(msg.sender).origin();
         address remoteCaller = IExecutor(msg.sender).originSender();
-        require(trustedYeeters[remoteChainId] == remoteCaller, "UNAUTH");
+        require(trustedRemote[remoteChainId] == remoteCaller, "UNAUTH");
 
         // decode payload
         ERC721XManager.BridgedTokenDetails memory details = abi.decode(

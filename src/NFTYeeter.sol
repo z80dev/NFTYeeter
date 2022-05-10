@@ -7,17 +7,16 @@ import {IConnext} from "nxtp/interfaces/IConnext.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";
 import "ERC721X/ERC721X.sol";
-import "ERC721X/MinimalOwnable.sol";
 import "./interfaces/INFTYeeter.sol";
 import "./interfaces/INFTCatcher.sol";
 import "./NFTCatcher.sol";
 import "Default/Kernel.sol";
+import "./ConnextBaseXApp.sol";
 import "./ERC721TransferManager.sol";
 import "./ERC721XManager.sol";
 
-contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
+contract NFTYeeter is INFTYeeter, ConnextBaseXApp, Policy {
     uint32 public immutable localDomain;
-    address public immutable connext;
     address private immutable transactingAssetId;
     address private registry;
     address public owner;
@@ -25,22 +24,14 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
     ERC721XManager private xmgr;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
-    mapping(uint32 => address) public trustedCatcher;
-
     constructor(
         uint32 _localDomain,
         address _connext,
         address _transactingAssetId,
         Kernel kernel_
-    ) MinimalOwnable() Policy(kernel_) {
+    ) MinimalOwnable() ConnextBaseXApp(_connext) Policy(kernel_) {
         localDomain = _localDomain;
-        connext = _connext;
         transactingAssetId = _transactingAssetId;
-    }
-
-    function setTrustedCatcher(uint32 chainId, address catcher) external {
-        require(msg.sender == _owner);
-        trustedCatcher[chainId] = catcher;
     }
 
     function configureModules() external override onlyKernel {
@@ -110,7 +101,7 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
         uint32 dstChainId,
         uint256 relayerFee
     ) internal {
-        address dstCatcher = trustedCatcher[dstChainId];
+        address dstCatcher = trustedRemote[dstChainId];
         require(dstCatcher != address(0), "Chain not supported");
         bytes4 selector = NFTCatcher.receiveAsset.selector;
         bytes memory payload = abi.encodeWithSelector(selector, details);
