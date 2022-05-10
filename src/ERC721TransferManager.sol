@@ -6,17 +6,16 @@
 
 import "solmate/tokens/ERC721.sol";
 import "./MinimalOwnable.sol";
+import "Default/Kernel.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 
-contract ERC721TransferManager is MinimalOwnable {
-    mapping(address => bool) callerAuth;
+contract ERC721TransferManager is MinimalOwnable, Module{
 
-    constructor() MinimalOwnable() {}
+    constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {}
 
-    function setCallerAuth(address caller, bool auth) external {
-        require(msg.sender == _owner);
-        callerAuth[caller] = auth;
+    function KEYCODE() external pure override returns (bytes3) {
+        return bytes3("NMG"); // NFT Manager
     }
 
     function safeTransferFrom(
@@ -25,8 +24,7 @@ contract ERC721TransferManager is MinimalOwnable {
         address to,
         uint256 tokenId,
         bytes calldata data
-    ) external {
-        require(callerAuth[msg.sender], "UNAUTH");
+    ) onlyPolicy external {
         ERC721(collection).safeTransferFrom(from, to, tokenId, data);
     }
 }
