@@ -7,11 +7,19 @@ import "ERC721X/MinimalOwnable.sol";
 
 abstract contract ConnextBaseXApp is MinimalOwnable {
 
+    uint32 public immutable localDomain; // identifies our chain to other chains
+
     IConnextHandler public immutable connext;
     mapping(uint32 => address) public trustedRemote;
 
-    constructor(IConnextHandler _connext) MinimalOwnable() {
-        connext = _connext;
+    constructor(address _connext, uint32 _domain) MinimalOwnable() {
+        connext = IConnextHandler(_connext);
+        localDomain = _domain;
+    }
+
+    modifier onlyConnext() {
+        require(msg.sender == address(connext), "NOT_CONNEXT");
+        _;
     }
 
     function setTrustedRemote(uint32 chainId, address remote) external {
