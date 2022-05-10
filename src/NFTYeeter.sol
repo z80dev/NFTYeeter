@@ -8,7 +8,6 @@ import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/interfaces/IERC721X.sol";
 import "ERC721X/ERC721X.sol";
 import "ERC721X/MinimalOwnable.sol";
-import "./interfaces/IDepositRegistry.sol";
 import "./interfaces/INFTYeeter.sol";
 import "./interfaces/INFTCatcher.sol";
 import "./NFTCatcher.sol";
@@ -20,7 +19,10 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
     uint32 public immutable localDomain;
     address public immutable connext;
     address private immutable transactingAssetId;
+    address private registry;
     address public owner;
+    ERC721TransferManager private mgr;
+    ERC721XManager private xmgr;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
     mapping(uint32 => address) public trustedCatcher;
@@ -41,24 +43,9 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
         trustedCatcher[chainId] = catcher;
     }
 
-    // this is used to mint new NFTs upon receipt on a "remote" chain
-    // if this big payload makes bridging expensive, we should separate
-    // the process of bridging a collection (name, symbol) from bridging
-    // of tokens (tokenId, tokenUri)
-    // specially once we add royalties
-    //
-    // buuuut... this would add a requirement that a collection *must* be bridged before any single items
-    // can be bridged, which was a big value add
-    //
-    // it will all come down to how expensive bridging a single item + all the data for the collection is
-    struct BridgedTokenDetails {
-        uint32 originChainId;
-        address originAddress;
-        uint256 tokenId;
-        address owner;
-        string name;
-        string symbol;
-        string tokenURI;
+    function configureModules() external override onlyKernel {
+        mgr = ERC721TransferManager(requireModule(bytes3("NMG")));
+        xmgr = ERC721XManager(requireModule(bytes3("XMG")));
     }
 
     function bridgeToken(
@@ -74,7 +61,6 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
         //
         // then call the function we need from it
         address registry = requireModule(bytes3("REG"));
-        ERC721TransferManager mgr = ERC721TransferManager(requireModule(bytes3("NMG")));
         mgr.safeTransferFrom(collection, msg.sender, registry, tokenId, bytes(""));
         require(
             ERC721(collection).ownerOf(tokenId) == registry,
@@ -82,7 +68,6 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
         ); // may not need to require this step for ERC721Xs, could be cool
         if (IERC165(collection).supportsInterface(IERC721XInterfaceID)) {
             ERC721X nft = ERC721X(collection);
-            ERC721XManager xmgr = ERC721XManager(requireModule(bytes3("XMG")));
             require(
                 collection ==
                     xmgr.getLocalAddress(
@@ -94,7 +79,7 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
 
             // _bridgeXToken(...); // similar to bridgeNativeToken but use originAddress, originChainId, etc.
             //
-            BridgedTokenDetails memory details = BridgedTokenDetails(
+            ERC721XManager.BridgedTokenDetails memory details = ERC721XManager.BridgedTokenDetails(
                 nft.originChainId(),
                 nft.originAddress(),
                 tokenId,
@@ -121,7 +106,7 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
     }
 
     function _bridgeToken(
-        BridgedTokenDetails memory details,
+        ERC721XManager.BridgedTokenDetails memory details,
         uint32 dstChainId,
         uint256 relayerFee
     ) internal {
@@ -153,7 +138,7 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
         uint256 relayerFee
     ) internal {
         ERC721 nft = ERC721(collection);
-        BridgedTokenDetails memory details = BridgedTokenDetails(
+        ERC721XManager.BridgedTokenDetails memory details = ERC721XManager.BridgedTokenDetails(
             localDomain,
             collection,
             tokenId,

@@ -12,6 +12,18 @@ import "Default/Kernel.sol";
 pragma solidity >=0.8.7 <0.9.0;
 
 contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
+
+    struct BridgedTokenDetails {
+        uint32 originChainId;
+        address originAddress;
+        uint256 tokenId;
+        address owner;
+        string name;
+        string symbol;
+        string tokenURI;
+    }
+
+
     address public erc721xImplementation;
 
     constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {

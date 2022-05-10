@@ -8,7 +8,6 @@ import "ERC721X/ERC721XInitializable.sol";
 import "openzeppelin-contracts/contracts/utils/Create2.sol";
 import "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
-import "./interfaces/IDepositRegistry.sol";
 import "./interfaces/INFTCatcher.sol";
 import "Default/Kernel.sol";
 import "./ERC721TransferManager.sol";
@@ -18,11 +17,20 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
     uint32 public immutable localDomain;
     address public immutable connext;
     address private immutable transactingAssetId;
+    address private registry;
     address public owner;
+    ERC721TransferManager private mgr;
+    ERC721XManager private xmgr;
 
     mapping(uint32 => address) public trustedYeeters; // remote addresses of other yeeters, though ideally
 
     // we would want them all to have the same address. still, some may upgrade
+    //
+
+    function configureModules() external override onlyKernel {
+        mgr = ERC721TransferManager(requireModule(bytes3("NMG")));
+        xmgr = ERC721XManager(requireModule(bytes3("XMG")));
+    }
 
     constructor(
         uint32 _localDomain,
@@ -40,26 +48,6 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
         trustedYeeters[chainId] = yeeter;
     }
 
-    // this is used to mint new NFTs upon receipt on a "remote" chain
-    // if this big payload makes bridging expensive, we should separate
-    // the process of bridging a collection (name, symbol) from bridging
-    // of tokens (tokenId, tokenUri)
-    // specially once we add royalties
-    //
-    // buuuut... this would add a requirement that a collection *must* be bridged before any single items
-    // can be bridged, which was a big value add
-    //
-    // it will all come down to how expensive bridging a single item + all the data for the collection is
-    struct BridgedTokenDetails {
-        uint32 originChainId;
-        address originAddress;
-        uint256 tokenId;
-        address owner;
-        string name;
-        string symbol;
-        string tokenURI;
-    }
-
     // function called by remote contract
     // this signature maximizes future flexibility & backwards compatibility
     function receiveAsset(bytes memory _payload) external {
@@ -71,9 +59,9 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
         require(trustedYeeters[remoteChainId] == remoteCaller, "UNAUTH");
 
         // decode payload
-        BridgedTokenDetails memory details = abi.decode(
+        ERC721XManager.BridgedTokenDetails memory details = abi.decode(
             _payload,
-            (BridgedTokenDetails)
+            (ERC721XManager.BridgedTokenDetails)
         );
 
         // get DepositRegistry address
@@ -82,13 +70,9 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
             // we're bridging this NFT *back* home
             // remote copy has been burned
             // simply send local one from Registry to recipient
-            ERC721TransferManager mgr = ERC721TransferManager(requireModule(bytes3("NMG")));
             mgr.safeTransferFrom(details.originAddress, registry, details.owner, details.tokenId, bytes(""));
         } else {
             // this is a remote NFT bridged to this chain
-
-            // get ERC721X manager address
-            ERC721XManager xmgr = ERC721XManager(requireModule(bytes3("XMG")));
 
             // calculate local address for collection
             address localAddress = xmgr.getLocalAddress(
