@@ -65,6 +65,10 @@ interface INFTCatcher {
 
 This contract is entrusted with deploying ERC721X contracts on the receiving chain and minting specific tokens when they are bridged. It does not need to interact with the Deposits Registry. It must simply mint, via `Create2`, an ERC721X with the data it receives, including the necessary `tokenURI`, `originChainId`, and `originAddress`
 
+## ERC721TransferManager
+
+This contract acts as a single universal NFT mover for the whole project. It will maintain a whitelist of allowed callers and allowed destinations. Its desinations may be managed via Default Framework's kernel.sol (Implementation TBD). For now, callers are whitelisted and they will specify where they're moving into by address.
+
 
 # Deployment instructions
 
