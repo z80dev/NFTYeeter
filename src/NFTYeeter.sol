@@ -12,34 +12,28 @@ import "./interfaces/IDepositRegistry.sol";
 import "./interfaces/INFTYeeter.sol";
 import "./interfaces/INFTCatcher.sol";
 import "./NFTCatcher.sol";
+import "Default/Kernel.sol";
+import "./ERC721TransferManager.sol";
+import "./ERC721XManager.sol";
 
-contract NFTYeeter is INFTYeeter, MinimalOwnable {
+contract NFTYeeter is INFTYeeter, MinimalOwnable, Policy {
     uint32 public immutable localDomain;
     address public immutable connext;
     address private immutable transactingAssetId;
     address public owner;
-    address public registry;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
-    mapping(uint32 => address) public trustedCatcher; // remote addresses of other yeeters, though ideally
-
-    // we would want them all to have the same address. still, some may upgrade
+    mapping(uint32 => address) public trustedCatcher;
 
     constructor(
         uint32 _localDomain,
         address _connext,
         address _transactingAssetId,
-        address _registry
-    ) MinimalOwnable() {
+        Kernel kernel_
+    ) MinimalOwnable() Policy(kernel_) {
         localDomain = _localDomain;
         connext = _connext;
         transactingAssetId = _transactingAssetId;
-        registry = _registry;
-    }
-
-    function setRegistry(address newRegistry) external {
-        require(msg.sender == _owner);
-        registry = newRegistry;
     }
 
     function setTrustedCatcher(uint32 chainId, address catcher) external {
@@ -74,25 +68,29 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
         uint32 dstChainId,
         uint256 relayerFee
     ) external {
-        // need to check here and differentiate between native NFTs and ERC721X
+        // transfer NFT into registry via ERC721Manager
+        //
+        // get address from kernel
+        //
+        // then call the function we need from it
+        address registry = requireModule(bytes3("REG"));
+        ERC721TransferManager mgr = ERC721TransferManager(requireModule(bytes3("NMG")));
+        mgr.safeTransferFrom(collection, msg.sender, registry, tokenId, bytes(""));
         require(
             ERC721(collection).ownerOf(tokenId) == registry,
             "NOT_IN_REGISTRY"
         ); // may not need to require this step for ERC721Xs, could be cool
         if (IERC165(collection).supportsInterface(IERC721XInterfaceID)) {
             ERC721X nft = ERC721X(collection);
+            ERC721XManager xmgr = ERC721XManager(requireModule(bytes3("XMG")));
             require(
                 collection ==
-                    IDepositRegistry(registry).getLocalAddress(
+                    xmgr.getLocalAddress(
                         nft.originChainId(),
                         nft.originAddress()
                     ),
                 "NOT_AUTHENTIC"
             );
-            // ERC721X
-            // check this ERC721X address matches what this contract would generate for its originChainId and originAddress
-            // either call the Catcher... or move that logic into the registry
-            // start counting these cross-chain calls and consider the diamond pattern
 
             // _bridgeXToken(...); // similar to bridgeNativeToken but use originAddress, originChainId, etc.
             //
@@ -106,11 +104,12 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
                 nft.tokenURI(tokenId)
             );
             _bridgeToken(details, dstChainId, relayerFee);
+
+            xmgr.burn(collection, tokenId); // burn local copy of tokenId now that its been bridged
         } else {
-            (address depositor, bool bridged) = IDepositRegistry(registry)
-                .deposits(collection, tokenId);
-            require(depositor == msg.sender, "NOT_DEPOSITOR");
-            require(bridged == false, "ALREADY_BRIDGED");
+            // we have already verified ownership via safeTransferFrom when
+            // moving the NFT into the registry, then checking registry
+            // ownership
             _bridgeNativeToken(
                 collection,
                 tokenId,
@@ -164,11 +163,5 @@ contract NFTYeeter is INFTYeeter, MinimalOwnable {
             nft.tokenURI(tokenId)
         );
         _bridgeToken(details, dstChainId, relayerFee);
-        IDepositRegistry(registry).setDetails(
-            collection,
-            tokenId,
-            recipient,
-            true
-        );
     }
 }

@@ -10,6 +10,17 @@ Makes use of:
 
 ## Deposits Registry
 
+The Deposits Registry will be the custodian of locked NFTs while they are bridged. If the Registry has posession of an NFT, then that NFT is currently bridged to another chain.
+
+It will be invoked upon receiving an ERC721 via safeTransferFrom, at which point it will record that it has locked this NFT, as well as by the Receiver contract in the cases where a bridged NFT is bridged back home in order to unlock the native NFT.
+
+Tracking deposits may be unecessary. We can rely on the functionality that a Receiver will only be able to send NFTs it actually has in its posession (i.e. have been sent to it by the Sender contract in order to lock them), and that the contract triggering a withdrawal is a trusted contract, which would only do so upon conditions we have set up.
+
+In other words, the Registry will take posession of NFTs, and only give up posession of them if triggered to do so by a trusted caller.
+
+Keeping the responsibility for validating withdrawals outside of this contract and requiring a trusted/whitelisted caller lets us modularize the logic for validating withdrawals, allowing our system to be uprgadeable and extendable as it gains or adapts in functionality.
+
+
 ``` solidity
 interface IDepositRegistry {
     struct DepositDetails {

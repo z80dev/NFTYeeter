@@ -10,13 +10,15 @@ import "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "./interfaces/IDepositRegistry.sol";
 import "./interfaces/INFTCatcher.sol";
+import "Default/Kernel.sol";
+import "./ERC721TransferManager.sol";
+import "./ERC721XManager.sol";
 
-contract NFTCatcher is INFTCatcher, MinimalOwnable {
+contract NFTCatcher is INFTCatcher, MinimalOwnable, Policy {
     uint32 public immutable localDomain;
     address public immutable connext;
     address private immutable transactingAssetId;
     address public owner;
-    address public registry;
 
     mapping(uint32 => address) public trustedYeeters; // remote addresses of other yeeters, though ideally
 
@@ -26,17 +28,11 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
         uint32 _localDomain,
         address _connext,
         address _transactingAssetId,
-        address _registry
-    ) MinimalOwnable() {
+        Kernel kernel_
+    ) MinimalOwnable() Policy(kernel_) {
         localDomain = _localDomain;
         connext = _connext;
         transactingAssetId = _transactingAssetId;
-        registry = _registry;
-    }
-
-    function setRegistry(address newRegistry) external {
-        require(msg.sender == _owner);
-        registry = newRegistry;
     }
 
     function setTrustedYeeter(uint32 chainId, address yeeter) external {
@@ -74,49 +70,51 @@ contract NFTCatcher is INFTCatcher, MinimalOwnable {
         address remoteCaller = IExecutor(msg.sender).originSender();
         require(trustedYeeters[remoteChainId] == remoteCaller, "UNAUTH");
 
+        // decode payload
         BridgedTokenDetails memory details = abi.decode(
             _payload,
             (BridgedTokenDetails)
         );
 
+        // get DepositRegistry address
+        address registry = requireModule(bytes3("REG"));
         if (details.originChainId == localDomain) {
             // we're bridging this NFT *back* home
-            IDepositRegistry(registry).setDetails(
-                details.originAddress,
-                details.tokenId,
-                details.owner,
-                false
-            );
+            // remote copy has been burned
+            // simply send local one from Registry to recipient
+            ERC721TransferManager mgr = ERC721TransferManager(requireModule(bytes3("NMG")));
+            mgr.safeTransferFrom(details.originAddress, registry, details.owner, details.tokenId, bytes(""));
         } else {
-            address localAddress = IDepositRegistry(registry).getLocalAddress(
+            // this is a remote NFT bridged to this chain
+
+            // get ERC721X manager address
+            ERC721XManager xmgr = ERC721XManager(requireModule(bytes3("XMG")));
+
+            // calculate local address for collection
+            address localAddress = xmgr.getLocalAddress(
                 details.originChainId,
                 details.originAddress
             );
-            if (Address.isContract(localAddress)) {
-                // this check will change after create2
-                // local XERC721 contract exists, we just need to mint
-                IDepositRegistry(registry).mint(
-                    localAddress,
-                    details.tokenId,
-                    details.tokenURI,
-                    details.owner
-                );
-            } else {
-                // deploy new ERC721 contract
-                // this will also change w/ create2
-                address nft = IDepositRegistry(registry).deployERC721X(
+
+            if (!Address.isContract(localAddress)) {
+                // contract doesn't exist; deploy
+                xmgr.deployERC721X(
                     details.originChainId,
                     details.originAddress,
                     details.name,
                     details.symbol
                 );
-                IDepositRegistry(registry).mint(
-                    localAddress,
-                    details.tokenId,
-                    details.tokenURI,
-                    details.owner
-                );
+
             }
+
+            // mint ERC721X for user
+            xmgr.mint(
+                localAddress,
+                details.tokenId,
+                details.tokenURI,
+                details.owner
+            );
+
         }
     }
 }

@@ -3,7 +3,7 @@
 // This contract handles deploying ERC721X contracts if needed
 // Should have both explicit deploy functionality & deploy-if-needed
 
-import "./MinimalOwnable.sol";
+import "ERC721X/MinimalOwnable.sol";
 import "ERC721X/ERC721XInitializable.sol";
 import "./interfaces/IERC721XManager.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";

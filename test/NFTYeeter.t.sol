@@ -6,12 +6,15 @@ import "forge-std/console.sol";
 import "../src/NFTYeeter.sol";
 import "../src/NFTCatcher.sol";
 import "../src/DepositRegistry.sol";
+import "../src/ERC721TransferManager.sol";
+import "../src/ERC721XManager.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "solmate/tokens/ERC721.sol";
 import {IConnext} from "nxtp/interfaces/IConnext.sol";
 import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/ERC721X.sol";
 import "ERC721X/ERC721XInitializable.sol";
+import "Default/Kernel.sol";
 
 contract DummyNFT is ERC721 {
 
@@ -30,18 +33,33 @@ contract DummyNFT is ERC721 {
 
 contract NFTYeeterTest is Test {
 
+    // Kernel & modules
+    Kernel kernel;
+    DepositRegistry reg;
+    ERC721TransferManager nmg;
+    ERC721XManager xmg;
+
+    // Policies
     NFTYeeter yeeter;
     NFTCatcher remoteCatcher;
+
+    // NFT contracts
     DummyNFT dumbNFT;
-    DepositRegistry reg;
     address public erc721xImplementation;
     ERC721XInitializable localNFT;
+
+    // simulated user addresses
     address public alice = address(0xaa);
     address public bob = address(0xbb);
     address public charlie = address(0xcc);
+
+    // resources
     address public connext = address(0xce);
+
     address remoteContract = address(0x1111);
+
     address transactingAssetId = address(0);
+
     uint32 localDomain = uint32(1);
     uint32 remoteDomain = uint32(2);
 
@@ -57,13 +75,29 @@ contract NFTYeeterTest is Test {
 
 
     function setUp() public {
-        reg = new DepositRegistry();
-        yeeter = new NFTYeeter(localDomain, connext, transactingAssetId, address(reg));
-        remoteCatcher = new NFTCatcher(remoteDomain, connext, transactingAssetId, address(reg));
+        // init kernel
+        kernel = new Kernel();
+
+        // init modules
+        reg = new DepositRegistry(kernel);
+        nmg = new ERC721TransferManager(kernel);
+        xmg = new ERC721XManager(kernel);
+
+        // install modules
+        kernel.executeAction(Actions.InstallModule, address(reg));
+        kernel.executeAction(Actions.InstallModule, address(nmg));
+        kernel.executeAction(Actions.InstallModule, address(xmg));
+
+        // init policies
+        yeeter = new NFTYeeter(localDomain, connext, transactingAssetId, kernel);
+        remoteCatcher = new NFTCatcher(remoteDomain, connext, transactingAssetId, kernel);
         yeeter.setTrustedCatcher(remoteDomain, address(remoteCatcher));
         remoteCatcher.setTrustedYeeter(localDomain, address(yeeter));
-        reg.setOperatorAuth(address(yeeter), true);
-        reg.setOperatorAuth(address(remoteCatcher), true);
+
+        // approve policies
+        kernel.executeAction(Actions.ApprovePolicy, address(yeeter));
+        kernel.executeAction(Actions.ApprovePolicy, address(remoteCatcher));
+
         dumbNFT = new DummyNFT();
         dumbNFT.mint(alice, 0);
         erc721xImplementation = address(new ERC721XInitializable());
@@ -78,7 +112,7 @@ contract NFTYeeterTest is Test {
     function testYeeterRejectsCounterfeits() public {
         // check we can't bridge an ERC721X not deployed by us
         vm.startPrank(alice);
-        localNFT.safeTransferFrom(alice, address(reg), 0);
+        localNFT.setApprovalForAll(address(nmg), true);
         assertTrue(localNFT.supportsInterface(0xefd00bbc));
         vm.mockCall(connext, abi.encodePacked(IConnext.xcall.selector), abi.encode(0));
         vm.expectRevert("NOT_AUTHENTIC");
@@ -87,17 +121,16 @@ contract NFTYeeterTest is Test {
 
     function testYeeterWillBridge() public {
         vm.startPrank(alice);
-        dumbNFT.safeTransferFrom(alice, address(reg), 0);
+        // dumbNFT.safeTransferFrom(alice, address(reg), 0);
+        // no longer moving, just approving
+        dumbNFT.setApprovalForAll(address(nmg), true);
         assertTrue(!dumbNFT.supportsInterface(0xefd00bbc));
         vm.mockCall(connext, abi.encodeWithSelector(IConnext.xcall.selector), abi.encode(0));
         yeeter.bridgeToken(address(dumbNFT), 0, alice, remoteDomain, 0);
-        (address depositor, bool bridged) = reg.deposits(address(dumbNFT), 0);
-        assertEq(depositor, alice);
-        assertTrue(bridged);
 
 
         // test that we can't bridge it again
-        vm.expectRevert("ALREADY_BRIDGED");
+        vm.expectRevert("WRONG_FROM");
         yeeter.bridgeToken(address(dumbNFT), 0, alice, remoteDomain, 0);
 
         vm.stopPrank();
@@ -116,7 +149,7 @@ contract NFTYeeterTest is Test {
                                            "testURI"
                                                 ));
         remoteCatcher.receiveAsset(details);
-        ERC721XInitializable remoteNFT = ERC721XInitializable(reg.getLocalAddress(localDomain, address(dumbNFT)));
+        ERC721XInitializable remoteNFT = ERC721XInitializable(xmg.getLocalAddress(localDomain, address(dumbNFT)));
 
         assertEq(keccak256(abi.encodePacked(remoteNFT.name())), keccak256("Dummy NFT"));
         assertEq(keccak256(abi.encodePacked(remoteNFT.symbol())), keccak256("DUM"));

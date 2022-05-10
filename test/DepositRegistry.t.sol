@@ -7,17 +7,20 @@ import "../src/DepositRegistry.sol";
 import "ERC721X/ERC721X.sol";
 import "forge-std/console.sol";
 import "forge-std/console2.sol";
+import "Default/Kernel.sol";
 
 contract DepositRegistryTest is Test {
 
     ERC721X localNFT;
+    Kernel kernel;
     DepositRegistry reg;
     address public alice = address(0xaa);
     address public bob = address(0xbb);
     address public charlie = address(0xcc);
 
     function setUp() public {
-        reg = new DepositRegistry();
+        kernel = new Kernel();
+        reg = new DepositRegistry(kernel);
         localNFT = new ERC721X("TestMonkeys", "TST", address(0), uint32(0));
         localNFT.mint(alice, 0, "testURI");
     }
@@ -26,9 +29,6 @@ contract DepositRegistryTest is Test {
         vm.prank(alice);
         localNFT.safeTransferFrom(alice, address(reg), 0);
         assertEq(localNFT.ownerOf(0), address(reg));
-        (address depositor, bool bridged) = reg.deposits(address(localNFT), 0);
-        assertEq(depositor, alice);
-        assertTrue(!bridged);
     }
 
     /*
