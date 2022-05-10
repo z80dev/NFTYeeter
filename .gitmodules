@@ -10,9 +10,9 @@
 [submodule "lib/ERC721X"]
 	path = lib/ERC721X
 	url = https://github.com/OphiuchusDAO/ERC721X
-[submodule "lib/nxtp"]
-	path = lib/nxtp
-	url = https://github.com/connext/nxtp
 [submodule "lib/Default"]
 	path = lib/Default
 	url = https://github.com/0xProxy/Default
+[submodule "lib/nxtp"]
+	path = lib/nxtp
+	url = https://github.com/connext/nxtp
