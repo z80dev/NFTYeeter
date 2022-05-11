@@ -8,9 +8,9 @@ interface IERC721XManager {
 
     function burn(address collection, uint256 tokenId) external;
 
-    function deployERC721X(uint32 originChainId, address originAddress, string memory name, string memory symbol) external returns (address);
+    function deployERC721X(uint16 originChainId, address originAddress, string memory name, string memory symbol) external returns (address);
 
-    function getLocalAddress(uint32 originChainId, address originAddress)
+    function getLocalAddress(uint16 originChainId, address originAddress)
         external
         view
         returns (address);

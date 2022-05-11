@@ -27,7 +27,7 @@ contract NFTBridge is
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
     constructor(
-        uint32 _localDomain,
+        uint16 _localDomain,
         address _connext,
         address _transactingAssetId,
         address kernel_,

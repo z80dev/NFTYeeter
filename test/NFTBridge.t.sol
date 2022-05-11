@@ -14,6 +14,7 @@ import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "ERC721X/ERC721X.sol";
 import "ERC721X/ERC721XInitializable.sol";
 import "Default/Kernel.sol";
+import "solidity-examples/mocks/LZEndpointMock.sol";
 
 contract DummyNFT is ERC721 {
 
@@ -30,7 +31,7 @@ contract DummyNFT is ERC721 {
     }
 }
 
-contract NFTYeeterTest is Test {
+contract NFTBridgeTest is Test {
 
     // Kernel & modules
     Kernel kernel;
@@ -54,7 +55,7 @@ contract NFTYeeterTest is Test {
 
     // resources
     address public connext = address(0xce);
-    address public lzEndpoint = address(0xddee);
+    LZEndpointMock public lzEndpoint;
 
     address remoteContract = address(0x1111);
 
@@ -62,6 +63,7 @@ contract NFTYeeterTest is Test {
 
     uint32 localDomain = uint32(1);
     uint32 remoteDomain = uint32(2);
+    uint16 lzChainId = uint16(100);
 
     struct BridgedTokenDetails {
         uint32 originChainId;
@@ -73,8 +75,11 @@ contract NFTYeeterTest is Test {
         string tokenURI;
     }
 
-
     function setUp() public {
+
+        // init lz endpoit
+        lzEndpoint = new LZEndpointMock(lzChainId);
+
         // init kernel
         kernel = new Kernel();
 
@@ -89,10 +94,20 @@ contract NFTYeeterTest is Test {
         kernel.executeAction(Actions.InstallModule, address(xmg));
 
         // init policies
-        yeeter = new NFTBridge(localDomain, connext, transactingAssetId, address(kernel), lzEndpoint);
-        remoteCatcher = new NFTBridge(remoteDomain, connext, transactingAssetId, address(kernel), lzEndpoint);
+        yeeter = new NFTBridge(localDomain, connext, transactingAssetId, address(kernel), address(lzEndpoint));
+        remoteCatcher = new NFTBridge(remoteDomain, connext, transactingAssetId, address(kernel), address(lzEndpoint));
+
+        // connext trusts
         yeeter.setTrustedRemote(remoteDomain, address(remoteCatcher));
+        yeeter.setTrustedRemote(lzChainId, abi.encodePacked(address(remoteCatcher)));
+
+        // lz trusts
         remoteCatcher.setTrustedRemote(localDomain, address(yeeter));
+        remoteCatcher.setTrustedRemote(lzChainId, abi.encodePacked(address(yeeter)));
+
+        // init lz data
+        lzEndpoint.setDestLzEndpoint(address(yeeter), address(lzEndpoint));
+        lzEndpoint.setDestLzEndpoint(address(remoteCatcher), address(lzEndpoint));
 
         // approve policies
         kernel.executeAction(Actions.ApprovePolicy, address(yeeter));
@@ -117,6 +132,18 @@ contract NFTYeeterTest is Test {
         vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
         vm.expectRevert("NOT_AUTHENTIC");
         yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain, 0);
+    }
+
+    function testLZBridge() public {
+        vm.startPrank(alice);
+        dumbNFT.setApprovalForAll(address(nmg), true);
+        assertTrue(!dumbNFT.supportsInterface(0xefd00bbc));
+        yeeter.lzBridgeToken(address(dumbNFT), 0, alice, lzChainId);
+        vm.expectRevert("WRONG_FROM");
+        yeeter.bridgeToken(address(dumbNFT), 0, alice, remoteDomain, 0);
+        console.log(xmg.getLocalAddress(localDomain, address(dumbNFT)));
+        ERC721XInitializable remoteNFT = ERC721XInitializable(xmg.getLocalAddress(localDomain, address(dumbNFT)));
+        assertEq(alice, remoteNFT.ownerOf(0));
     }
 
     function testYeeterWillBridge() public {

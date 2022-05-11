@@ -13,7 +13,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
     struct BridgedTokenDetails {
-        uint32 originChainId;
+        uint16 originChainId;
         address originAddress;
         uint256 tokenId;
         address owner;
@@ -45,7 +45,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         ERC721XInitializable(collection).mint(recipient, tokenId, tokenURI);
     }
 
-    function _calculateCreate2Address(uint32 chainId, address originAddress)
+    function _calculateCreate2Address(uint16 chainId, address originAddress)
         internal
         view
         returns (address)
@@ -54,7 +54,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         return Clones.predictDeterministicAddress(erc721xImplementation, salt);
     }
 
-    function getLocalAddress(uint32 originChainId, address originAddress)
+    function getLocalAddress(uint16 originChainId, address originAddress)
         external
         view
         returns (address)
@@ -63,7 +63,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
     }
 
     function deployERC721X(
-        uint32 chainId,
+        uint16 chainId,
         address originAddress,
         string memory name,
         string memory symbol

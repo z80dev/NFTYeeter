@@ -6,13 +6,33 @@ This bridge requires the careful setup of various contracts for each chain that 
 
 This process should be repeated for each chain to be supported.
 
-### Deploy Registry Contract
+### Deploy Kernel
+
+No arguments needed
+
+`forge create Kernel --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY`
+
+### Deploy Registry Module
 
 This is the first contract that should be deployed. It requires no arguments to its contstructor. It can be deployed with the following command: 
 
-`forge create DepositRegistry --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY`
+`forge create DepositRegistry --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY --constructor-args 0xkerneladdress`
 
-### Deploy Sender Contract
+### Deploy ERC721TransferManager Module
+
+`forge create ERC721TransferManager --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY --constructor-args 0xkerneladdress`
+
+### Deploy ERC721XManager Module 
+
+`forge create ERC721XManager --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY --constructor-args 0xkerneladdress`
+
+### Install Modules
+
+`cast send --rpc-url=$RPC_URL <kernelAddress>  "executeAction(uint8, address)" 0 <registryModule> --private-key=$PRIVATE_KEY`
+`cast send --rpc-url=$RPC_URL <kernelAddress>  "executeAction(uint8, address)" 0 <NMGModule> --private-key=$PRIVATE_KEY`
+`cast send --rpc-url=$RPC_URL <kernelAddress>  "executeAction(uint8, address)" 0 <XMGModule> --private-key=$PRIVATE_KEY`
+
+### Deploy Bridge Policy
 
 This contract accepts 4 constructor arguments:
 
@@ -21,27 +41,11 @@ This contract accepts 4 constructor arguments:
 - transactingAssetId (not very relevant for initial use-cases. in testing, use TST token
 - registry contract address
 
-`forge create NFTYeeter --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY --constructor-args 2212 0xconnextaddress 0xtransactingassetid 0xregistrycontract`
+`forge create NFTBridge --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY --constructor-args 2212 0xconnextaddress 0xtransactingassetid 0xregistrycontract 0xlzEndpoint`
 
-### Deploy Receiver Contract 
+### Approve Policy
 
-This contract accepts 4 constructor arguments:
-
-- localDomain/localChainId (identifies to remote receivers the chain this contract is sending NFTs *from*)
-- connext (address of the connext router for this chain)
-- transactingAssetId (not very relevant for initial use-cases. in testing, use TST token
-- registry contract address
-
-`forge create NFTCatcher --rpc-url=$RPC_URL --private-key=$PRIVATE_KEY --constructor-args 2212 0xconnextaddress 0xtransactingassetid 0xregistrycontract`
-
-### Grant Registry Auth to Sender/Receiver Contracts
-
-This is necessary to enable the Sender and Receiver contracts to trigger the minting or burning of ERC721Xs.
-
-`cast send --rpc-url=$RPC_URL <registryAddress>  "setOperatorAuth(address, bool)" <senderAddress> true --private-key=$PRIVATE_KEY`
-
-`cast send --rpc-url=$RPC_URL <registryAddress>  "setOperatorAuth(address, bool)" <receiverAddress> true --private-key=$PRIVATE_KEY`
-
+`cast send --rpc-url=$RPC_URL <kernelAddress>  "executeAction(uint8, address)" 2 <Bridge> --private-key=$PRIVATE_KEY`
 
 ## Authorize Inter-Chain Communication
 
@@ -53,18 +57,15 @@ After contracts are deployed, we must authorize them to call into and out of eac
 
 For example, to link chains A and B, we must:
 
-- Authorize the sender on chain A to send messages to the receiver on chain B
-- Authorize the receiver on chain A to receive messages from the sender on chain B
+- Authorize the bridge on chain A to send messages to the bridge on chain B
 
-- Authorize the sender on chain B to send messages to the receiver on chain A
-- Authorize the receiver on chain B to receive messages from the sender on chain A
+- Authorize the bridge on chain B to send messages to the bridge on chain A
 
 All contracts on both chains should already be deployed. We will need their addresses in order to carry out the approvals.
 
-## Authorize Sender to send to Receiver
+### Connext Authorization
+`cast send --rpc-url=$RPC_URL <senderAddress>  "setTrustedRemote(uint32, address)" <remoteChainId> <receiverAddress> --private-key=$PRIVATE_KEY`
 
-`cast send --rpc-url=$RPC_URL <senderAddress>  "setTrustedCatcher(uint32, address)" <remoteChainId> <receiverAddress> --private-key=$PRIVATE_KEY`
+### Layer Zero Authorization
 
-## Authorize the Receiver to receive from the Sender
-
-`cast send --rpc-url=$RPC_URL <receiverAddress>  "setTrustedYeeter(uint32, address)" <remoteChainId> <senderAddress> --private-key=$PRIVATE_KEY`
+`cast send --rpc-url=$RPC_URL <senderAddress>  "setTrustedRemote(uint16, bytes calldata)" <lzRemoteChainId> <receiverAddressBytes> --private-key=$PRIVATE_KEY`
