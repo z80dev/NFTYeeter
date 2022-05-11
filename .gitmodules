@@ -10,12 +10,12 @@
 [submodule "lib/Default"]
 	path = lib/Default
 	url = https://github.com/0xProxy/Default
-[submodule "lib/nxtp"]
-	path = lib/nxtp
-	url = https://github.com/connext/nxtp
 [submodule "lib/solidity-examples"]
 	path = lib/solidity-examples
 	url = https://github.com/LayerZero-Labs/solidity-examples
 [submodule "lib/ERC721X"]
 	path = lib/ERC721X
 	url = https://github.com/OphiuchusDAO/ERC721X
+[submodule "lib/nxtp"]
+	path = lib/nxtp
+	url = https://github.com/connext/nxtp
