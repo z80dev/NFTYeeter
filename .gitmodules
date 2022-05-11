@@ -16,3 +16,6 @@
 [submodule "lib/ERC721X"]
 	path = lib/ERC721X
 	url = https://github.com/OphiuchusDAO/ERC721X
+[submodule "lib/solidity-examples"]
+	path = lib/solidity-examples
+	url = https://github.com/LayerZero-Labs/solidity-examples
