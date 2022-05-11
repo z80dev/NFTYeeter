@@ -1,2 +1,3 @@
 ERC721X/=lib/ERC721X/src/
 nxtp/=lib/nxtp/packages/deployments/contracts/contracts/
+@openzeppelin/=lib/openzeppelin-contracts/

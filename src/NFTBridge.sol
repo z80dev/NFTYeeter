@@ -8,12 +8,19 @@ import {IExecutor} from "nxtp/interfaces/IExecutor.sol";
 import "./interfaces/INFTCatcher.sol";
 import "ERC721X/ERC721X.sol";
 import "./interfaces/INFTYeeter.sol";
-import "./NFTCatcher.sol";
 import "./ERC721XManager.sol";
 import "./NFTBridgeBasePolicy.sol";
 import "openzeppelin-contracts/contracts/utils/Address.sol";
+import "./ConnextBaseXApp.sol";
+import "solidity-examples/lzApp/NonblockingLzApp.sol";
 
-contract ConnextBridge is INFTYeeter, INFTCatcher, NFTBridgeBasePolicy {
+contract NFTBridge is
+    INFTYeeter,
+    INFTCatcher,
+    NFTBridgeBasePolicy,
+    ConnextBaseXApp,
+    NonblockingLzApp
+{
     // connext data
     address private immutable transactingAssetId; // this may change in the future
 
@@ -23,8 +30,9 @@ contract ConnextBridge is INFTYeeter, INFTCatcher, NFTBridgeBasePolicy {
         uint32 _localDomain,
         address _connext,
         address _transactingAssetId,
-        address kernel_
-    ) NFTBridgeBasePolicy(_connext, localDomain, kernel_) {
+        address kernel_,
+        address _endpoint
+    ) NFTBridgeBasePolicy(kernel_) ConnextBaseXApp(_connext, _localDomain) NonblockingLzApp(_endpoint) {
         transactingAssetId = _transactingAssetId;
     }
 
@@ -87,7 +95,7 @@ contract ConnextBridge is INFTYeeter, INFTCatcher, NFTBridgeBasePolicy {
     ) internal {
         address dstCatcher = trustedRemote[dstChainId];
         require(dstCatcher != address(0), "Chain not supported");
-        bytes4 selector = NFTCatcher.receiveAsset.selector;
+        bytes4 selector = this.receiveAsset.selector;
         bytes memory payload = abi.encodeWithSelector(selector, details);
         IConnextHandler.CallParams memory callParams = IConnextHandler
             .CallParams({
@@ -106,15 +114,20 @@ contract ConnextBridge is INFTYeeter, INFTCatcher, NFTBridgeBasePolicy {
         // record that this NFT has been bridged
     }
 
+    // by the time this is called, we have already confirmed we're
+    // called by the lz endpoint & the trusted remote contract
+    //
+    // i.e. we can just proceed
+    function _nonblockingLzReceive(
+        uint16 _srcChainId,
+        bytes memory _srcAddress,
+        uint64 _nonce,
+        bytes memory _payload
+    ) internal override {
+        _receive(_payload);
+    }
 
-    // function called by remote contract
-    // this signature maximizes future flexibility & backwards compatibility
-    function receiveAsset(bytes memory _payload) external onlyConnext {
-        // check remote contract is trusted remote NFTYeeter
-        uint32 remoteChainId = IExecutor(msg.sender).origin();
-        address remoteCaller = IExecutor(msg.sender).originSender();
-        require(trustedRemote[remoteChainId] == remoteCaller, "UNAUTH");
-
+    function _receive(bytes memory _payload) internal {
         // decode payload
         ERC721XManager.BridgedTokenDetails memory details = abi.decode(
             _payload,
@@ -162,4 +175,13 @@ contract ConnextBridge is INFTYeeter, INFTCatcher, NFTBridgeBasePolicy {
         }
     }
 
+    // function called by remote contract
+    // this signature maximizes future flexibility & backwards compatibility
+    function receiveAsset(bytes memory _payload) external onlyConnext {
+        // check remote contract is trusted remote NFTYeeter
+        uint32 remoteChainId = IExecutor(msg.sender).origin();
+        address remoteCaller = IExecutor(msg.sender).originSender();
+        require(trustedRemote[remoteChainId] == remoteCaller, "UNAUTH");
+        _receive(_payload);
+    }
 }

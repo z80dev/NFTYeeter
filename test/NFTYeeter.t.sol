@@ -3,7 +3,7 @@ pragma solidity ^0.8.11;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../src/ConnextBridge.sol";
+import "../src/NFTBridge.sol";
 import "../src/DepositRegistry.sol";
 import "../src/ERC721TransferManager.sol";
 import "../src/ERC721XManager.sol";
@@ -39,8 +39,8 @@ contract NFTYeeterTest is Test {
     ERC721XManager xmg;
 
     // Policies
-    ConnextBridge yeeter;
-    ConnextBridge remoteCatcher;
+    NFTBridge yeeter;
+    NFTBridge remoteCatcher;
 
     // NFT contracts
     DummyNFT dumbNFT;
@@ -54,6 +54,7 @@ contract NFTYeeterTest is Test {
 
     // resources
     address public connext = address(0xce);
+    address public lzEndpoint = address(0xddee);
 
     address remoteContract = address(0x1111);
 
@@ -88,8 +89,8 @@ contract NFTYeeterTest is Test {
         kernel.executeAction(Actions.InstallModule, address(xmg));
 
         // init policies
-        yeeter = new ConnextBridge(localDomain, connext, transactingAssetId, address(kernel));
-        remoteCatcher = new ConnextBridge(remoteDomain, connext, transactingAssetId, address(kernel));
+        yeeter = new NFTBridge(localDomain, connext, transactingAssetId, address(kernel), lzEndpoint);
+        remoteCatcher = new NFTBridge(remoteDomain, connext, transactingAssetId, address(kernel), lzEndpoint);
         yeeter.setTrustedRemote(remoteDomain, address(remoteCatcher));
         remoteCatcher.setTrustedRemote(localDomain, address(yeeter));
 
