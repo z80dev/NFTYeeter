@@ -32,17 +32,19 @@ contract NFTBridge is
         address _transactingAssetId,
         address kernel_,
         address _endpoint
-    ) NFTBridgeBasePolicy(kernel_) ConnextBaseXApp(_connext, _localDomain) NonblockingLzApp(_endpoint) {
+    )
+        NFTBridgeBasePolicy(kernel_)
+        ConnextBaseXApp(_connext, _localDomain)
+        NonblockingLzApp(_endpoint)
+    {
         transactingAssetId = _transactingAssetId;
     }
 
-    function bridgeToken(
+    function _prepareTransfer(
         address collection,
         uint256 tokenId,
-        address recipient,
-        uint32 dstChainId,
-        uint256 relayerFee
-    ) external {
+        address recipient
+    ) internal returns (ERC721XManager.BridgedTokenDetails memory) {
         // transfer NFT into registry via ERC721Manager
         mgr.safeTransferFrom(
             collection,
@@ -85,6 +87,41 @@ contract NFTBridge is
             xmgr.burn(collection, tokenId); // burn local copy of tokenId now that its been re-bridged
         }
 
+        return details;
+    }
+
+    function lzBridgeToken(
+        address collection,
+        uint256 tokenId,
+        address recipient,
+        uint16 dstChainId
+    ) public payable {
+        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
+            collection,
+            tokenId,
+            recipient
+        );
+        _lzSend(
+            dstChainId,
+            abi.encode(details),
+            payable(recipient),
+            address(0x0),
+            bytes("")
+        );
+    }
+
+    function bridgeToken(
+        address collection,
+        uint256 tokenId,
+        address recipient,
+        uint32 dstChainId,
+        uint256 relayerFee
+    ) external {
+        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
+            collection,
+            tokenId,
+            recipient
+        );
         _bridgeToken(details, dstChainId, relayerFee);
     }
 
