@@ -67,7 +67,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         address originAddress,
         string memory name,
         string memory symbol
-    ) external returns (address) {
+    ) external onlyPolicy returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
         ERC721XInitializable nft = ERC721XInitializable(
             Clones.cloneDeterministic(erc721xImplementation, salt)
