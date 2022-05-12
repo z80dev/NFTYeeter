@@ -22,3 +22,6 @@
 [submodule "lib/xapp-starter"]
 	path = lib/xapp-starter
 	url = https://github.com/z80dev/xapp-starter
+[submodule "lib/openzeppelin-contracts-upgradeable"]
+	path = lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
