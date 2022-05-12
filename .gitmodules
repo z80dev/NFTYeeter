@@ -19,3 +19,6 @@
 [submodule "lib/nxtp"]
 	path = lib/nxtp
 	url = https://github.com/connext/nxtp
+[submodule "lib/xapp-starter"]
+	path = lib/xapp-starter
+	url = https://github.com/z80dev/xapp-starter
