@@ -31,11 +31,11 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         erc721xImplementation = address(new ERC721XInitializable());
     }
 
-    function KEYCODE() external pure override returns (bytes3) {
-        return bytes3("XMG"); // XNFT Manager
+    function KEYCODE() public pure override returns (bytes5) {
+        return bytes5("XFTMG"); // XNFT Manager
     }
 
-    function burn(address collection, uint256 tokenId) external onlyPolicy {
+    function burn(address collection, uint256 tokenId) external onlyPermitted {
         ERC721XInitializable(collection).burn(tokenId);
     }
 

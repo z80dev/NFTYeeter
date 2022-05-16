@@ -16,9 +16,23 @@ abstract contract NFTBridgeBasePolicy is Policy {
 
     constructor(address _kernel) Policy(Kernel(_kernel)) {}
 
-    function configureModules() external override onlyKernel {
-        mgr = ERC721TransferManager(requireModule(bytes3("NMG")));
-        xmgr = ERC721XManager(requireModule(bytes3("XMG")));
-        registry = DepositRegistry(requireModule(bytes3("REG")));
+    function configureReads() external override onlyKernel {
+        registry = DepositRegistry(getModuleAddress(bytes5("DPREG")));
+        mgr = ERC721TransferManager(getModuleAddress(bytes5("NFTMG")));
+        xmgr = ERC721XManager(getModuleAddress(bytes5("XFTMG")));
+    }
+
+
+    function requestWrites()
+        external
+        view
+        override
+        onlyKernel
+        returns (bytes5[] memory permissions)
+    {
+        bytes5[] memory reqs = new bytes5[](2);
+        reqs[0] = bytes5("NFTMG");
+        reqs[1] = bytes5("XFTMG");
+        return reqs;
     }
 }

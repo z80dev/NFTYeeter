@@ -1,23 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import "ERC721X/ERC721X.sol";
+
 import "solmate/tokens/ERC721.sol";
-import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
+
 import "nxtp/interfaces/IConnextHandler.sol";
 import "nxtp/interfaces/IExecutor.sol";
-import "./interfaces/INFTCatcher.sol";
-import "ERC721X/ERC721X.sol";
-import "./interfaces/INFTYeeter.sol";
+
+import "openzeppelin-contracts/contracts/utils/Address.sol";
+import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
+
 import "./ERC721XManager.sol";
 import "./NFTBridgeBasePolicy.sol";
-import "openzeppelin-contracts/contracts/utils/Address.sol";
 import "./ConnextBaseXApp.sol";
-import "solidity-examples/lzApp/NonblockingLzApp.sol";
+import "./interfaces/INFTBridge.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 
 contract NFTBridge is
-    INFTYeeter,
-    INFTCatcher,
+    INFTBridge,
     NFTBridgeBasePolicy,
     ConnextBaseXApp
 {
@@ -37,6 +38,48 @@ contract NFTBridge is
         ConnextBaseXApp(_connext, _localDomain)
     {
         transactingAssetId = _transactingAssetId;
+    }
+
+    function bridgeToken(
+        address collection,
+        uint256 tokenId,
+        address recipient,
+        uint32 dstChainId,
+        uint256 relayerFee
+    ) external {
+        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
+            collection,
+            tokenId,
+            recipient
+        );
+        _bridgeToken(details, dstChainId, relayerFee);
+    }
+
+    function bridgeToSelf(
+        address collection,
+        uint256 tokenId,
+        address recipient,
+        uint32 fakeChainId,
+        uint256 relayerFee
+                          ) external {
+        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
+            collection,
+            tokenId,
+            recipient
+        );
+        details.originChainId = uint16(fakeChainId);
+        bytes memory _payload = abi.encode(details);
+        _receive(_payload);
+    }
+
+    // function called by remote contract
+    // this signature maximizes future flexibility & backwards compatibility
+    function receiveAsset(bytes memory _payload) external onlyExecutor {
+        // check remote contract is trusted remote NFTYeeter
+        uint32 remoteChainId = IExecutor(msg.sender).origin();
+        address remoteCaller = IExecutor(msg.sender).originSender();
+        require(trustedRemote[remoteChainId] == remoteCaller, "UNAUTH");
+        _receive(_payload);
     }
 
     function _prepareTransfer(
@@ -89,38 +132,6 @@ contract NFTBridge is
         return details;
     }
 
-    function bridgeToken(
-        address collection,
-        uint256 tokenId,
-        address recipient,
-        uint32 dstChainId,
-        uint256 relayerFee
-    ) external {
-        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
-            collection,
-            tokenId,
-            recipient
-        );
-        _bridgeToken(details, dstChainId, relayerFee);
-    }
-
-    function bridgeToSelf(
-        address collection,
-        uint256 tokenId,
-        address recipient,
-        uint32 fakeChainId,
-        uint256 relayerFee
-                          ) external {
-        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
-            collection,
-            tokenId,
-            recipient
-        );
-        details.originChainId = uint16(fakeChainId);
-        bytes memory _payload = abi.encode(details);
-        _receive(_payload);
-    }
-
     function _bridgeToken(
         ERC721XManager.BridgedTokenDetails memory details,
         uint32 dstChainId,
@@ -136,7 +147,11 @@ contract NFTBridge is
                 to: dstCatcher,
                 callData: callData,
                 originDomain: localDomain,
-                destinationDomain: dstChainId
+                destinationDomain: dstChainId,
+                forceSlow: false,
+                receiveLocal: false
+                // callback: address(0),
+                // callbackFee: 0
             });
         IConnextHandler.XCallArgs memory xcallArgs = IConnextHandler.XCallArgs({
             params: callParams,
@@ -198,16 +213,6 @@ contract NFTBridge is
                 details.owner
             );
         }
-    }
-
-    // function called by remote contract
-    // this signature maximizes future flexibility & backwards compatibility
-    function receiveAsset(bytes memory _payload) external onlyExecutor {
-        // check remote contract is trusted remote NFTYeeter
-        uint32 remoteChainId = IExecutor(msg.sender).origin();
-        address remoteCaller = IExecutor(msg.sender).originSender();
-        require(trustedRemote[remoteChainId] == remoteCaller, "UNAUTH");
-        _receive(_payload);
     }
 
 }

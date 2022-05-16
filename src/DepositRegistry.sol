@@ -15,8 +15,8 @@ contract DepositRegistry is
     MinimalOwnable,
     Module
 {
-    function KEYCODE() external pure override returns (bytes3) {
-        return bytes3("REG");
+    function KEYCODE() public pure override returns (bytes5) {
+        return bytes5("DPREG");
     }
 
     constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {}
@@ -25,7 +25,7 @@ contract DepositRegistry is
         address collection,
         address recipient,
         uint256 tokenId
-    ) external onlyPolicy {
+    ) external onlyPermitted {
         ERC721(collection).safeTransferFrom(address(this), recipient, tokenId);
     }
 }

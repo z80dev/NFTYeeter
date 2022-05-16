@@ -2,7 +2,8 @@
 
 pragma solidity >=0.8.7 <0.9.0;
 
-interface INFTYeeter {
+interface INFTBridge {
+
     function bridgeToken(
         address collection,
         uint256 tokenId,
@@ -10,4 +11,7 @@ interface INFTYeeter {
         uint32 dstChainId,
         uint256 relayerFee
     ) external;
+
+    function receiveAsset(bytes memory _payload) external;
+
 }

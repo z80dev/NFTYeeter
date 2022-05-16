@@ -12,8 +12,8 @@ pragma solidity >=0.8.7 <0.9.0;
 contract ERC721TransferManager is Module {
     constructor(Kernel kernel_) Module(kernel_) {}
 
-    function KEYCODE() external pure override returns (bytes3) {
-        return bytes3("NMG"); // NFT Manager
+    function KEYCODE() public pure override returns (bytes5) {
+        return bytes5("NFTMG"); // NFT Manager
     }
 
     function safeTransferFrom(
@@ -22,7 +22,7 @@ contract ERC721TransferManager is Module {
         address to,
         uint256 tokenId,
         bytes calldata data
-    ) external onlyPolicy {
+    ) external onlyPermitted {
         ERC721(collection).safeTransferFrom(from, to, tokenId, data);
     }
 }
