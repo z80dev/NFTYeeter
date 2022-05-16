@@ -21,7 +21,7 @@ contract DepositRegistryTest is Test {
     function setUp() public {
         kernel = new Kernel();
         reg = new DepositRegistry(kernel);
-        localNFT = new ERC721X("TestMonkeys", "TST", address(0), uint32(0));
+        localNFT = new ERC721X("TestMonkeys", "TST", address(0), uint16(0));
         localNFT.mint(alice, 0, "testURI");
     }
 

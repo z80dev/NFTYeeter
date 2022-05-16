@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+//
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "./interfaces/IDepositRegistry.sol";

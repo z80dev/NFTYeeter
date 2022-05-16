@@ -24,6 +24,9 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
 
     address public erc721xImplementation;
 
+    event MintedCollection(uint16 originChainId, address originAddress, string name);
+    event MintedItem(address collection, uint256 tokenId, address recipient);
+
     constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {
         erc721xImplementation = address(new ERC721XInitializable());
     }
@@ -41,8 +44,9 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         uint256 tokenId,
         string memory tokenURI,
         address recipient
-    ) external onlyPolicy {
+    ) external {
         ERC721XInitializable(collection).mint(recipient, tokenId, tokenURI);
+        emit MintedItem(collection, tokenId, recipient);
     }
 
     function _calculateCreate2Address(uint16 chainId, address originAddress)
@@ -67,12 +71,13 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         address originAddress,
         string memory name,
         string memory symbol
-    ) external onlyPolicy returns (address) {
+    ) external returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
         ERC721XInitializable nft = ERC721XInitializable(
             Clones.cloneDeterministic(erc721xImplementation, salt)
         );
         nft.initialize(name, symbol, originAddress, chainId);
+        emit MintedCollection(chainId, originAddress, name);
         return address(nft);
     }
 }

@@ -2,22 +2,22 @@
 
 pragma solidity >=0.8.7 <0.9.0;
 
-import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
+import {ConnextHandler} from "nxtp/nomad-xapps/contracts/connext/ConnextHandler.sol";
 import "ERC721X/MinimalOwnable.sol";
 
 abstract contract ConnextBaseXApp is MinimalOwnable {
     uint32 public immutable localDomain; // identifies our chain to other chains
 
-    IConnextHandler public immutable connext;
+    ConnextHandler public immutable connext;
     mapping(uint32 => address) public trustedRemote;
 
-    constructor(address _connext, uint32 _domain) MinimalOwnable() {
-        connext = IConnextHandler(_connext);
+    constructor(address payable _connext, uint32 _domain) MinimalOwnable() {
+        connext = ConnextHandler(_connext);
         localDomain = _domain;
     }
 
-    modifier onlyConnext() {
-        require(msg.sender == address(connext), "NOT_CONNEXT");
+    modifier onlyExecutor() {
+        require(msg.sender == address(connext.executor()), "NOT_CONNEXT");
         _;
     }
 
