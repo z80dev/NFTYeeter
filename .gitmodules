@@ -4,9 +4,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "lib/Default"]
-	path = lib/Default
-	url = https://github.com/0xProxy/Default
 [submodule "lib/solidity-examples"]
 	path = lib/solidity-examples
 	url = https://github.com/LayerZero-Labs/solidity-examples
@@ -25,3 +22,6 @@
 [submodule "lib/ERC721X"]
 	path = lib/ERC721X
 	url = https://github.com/OphiuchusDAO/ERC721X
+[submodule "lib/Default"]
+	path = lib/Default
+	url = https://github.com/fullyallocated/Default
