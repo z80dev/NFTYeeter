@@ -10,9 +10,6 @@
 [submodule "lib/solidity-examples"]
 	path = lib/solidity-examples
 	url = https://github.com/LayerZero-Labs/solidity-examples
-[submodule "lib/ERC721X"]
-	path = lib/ERC721X
-	url = https://github.com/OphiuchusDAO/ERC721X
 [submodule "lib/xapp-starter"]
 	path = lib/xapp-starter
 	url = https://github.com/z80dev/xapp-starter
@@ -25,3 +22,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/Rari-Capital/solmate
+[submodule "lib/ERC721X"]
+	path = lib/ERC721X
+	url = https://github.com/OphiuchusDAO/ERC721X
