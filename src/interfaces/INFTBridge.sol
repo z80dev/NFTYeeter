@@ -10,6 +10,4 @@ interface INFTBridge {
         uint32 dstChainId,
         uint256 relayerFee
     ) external;
-
-    function receiveAsset(bytes memory _payload) external;
 }
