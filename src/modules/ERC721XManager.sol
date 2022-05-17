@@ -24,7 +24,11 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
 
     address public erc721xImplementation;
 
-    event MintedCollection(uint32 originChainId, address originAddress, string name);
+    event MintedCollection(
+        uint32 originChainId,
+        address originAddress,
+        string name
+    );
     event MintedItem(address collection, uint256 tokenId, address recipient);
 
     constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {

@@ -3,7 +3,6 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 interface INFTBridge {
-
     function bridgeToken(
         address collection,
         uint256 tokenId,
@@ -13,5 +12,4 @@ interface INFTBridge {
     ) external;
 
     function receiveAsset(bytes memory _payload) external;
-
 }

@@ -8,7 +8,6 @@ import {ConnextHandler} from "nxtp/nomad-xapps/contracts/connext/ConnextHandler.
 import "ERC721X/MinimalOwnable.sol";
 
 abstract contract ConnextBaseXApp is MinimalOwnable {
-
     ConnextHandler public immutable connext;
     mapping(uint32 => address) public trustedRemote;
 

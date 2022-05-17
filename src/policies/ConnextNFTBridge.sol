@@ -19,10 +19,7 @@ import "./NFTBridgeBase.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 
-contract ConnextNFTBridge is
-    NFTBridgeBase,
-    ConnextBaseXApp
-{
+contract ConnextNFTBridge is NFTBridgeBase, ConnextBaseXApp {
     // connext data
     address private immutable transactingAssetId; // this may change in the future
 
@@ -60,7 +57,12 @@ contract ConnextNFTBridge is
         uint32 remoteChainId = IExecutor(msg.sender).origin();
         address remoteCaller = IExecutor(msg.sender).originSender();
         require(trustedRemote[remoteChainId] == remoteCaller, "UNAUTH");
-        _receive(_payload);
+        // decode payload
+        ERC721XManager.BridgedTokenDetails memory details = abi.decode(
+            _payload,
+            (ERC721XManager.BridgedTokenDetails)
+        );
+        _receive(details);
     }
 
     function _bridgeToken(
@@ -93,5 +95,4 @@ contract ConnextNFTBridge is
         connext.xcall(xcallArgs);
         // record that this NFT has been bridged
     }
-
 }

@@ -13,19 +13,11 @@ import "../interfaces/INFTBridge.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 
-abstract contract NFTBridgeBase is
-    INFTBridge,
-    NFTBridgeBasePolicy
-{
+abstract contract NFTBridgeBase is INFTBridge, NFTBridgeBasePolicy {
     uint32 localDomain;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
-    constructor(
-        address kernel_,
-        uint32 _domain
-    )
-        NFTBridgeBasePolicy(kernel_)
-    {
+    constructor(address kernel_, uint32 _domain) NFTBridgeBasePolicy(kernel_) {
         localDomain = _domain;
     }
 
@@ -81,14 +73,14 @@ abstract contract NFTBridgeBase is
 
     event ReceivedToken(address originAddress, uint256 tokenId, address owner);
 
-    function _receive(bytes memory _payload) internal {
-        // decode payload
-        ERC721XManager.BridgedTokenDetails memory details = abi.decode(
-            _payload,
-            (ERC721XManager.BridgedTokenDetails)
+    function _receive(ERC721XManager.BridgedTokenDetails memory details)
+        internal
+    {
+        emit ReceivedToken(
+            details.originAddress,
+            details.tokenId,
+            details.owner
         );
-
-        emit ReceivedToken(details.originAddress, details.tokenId, details.owner);
 
         // get DepositRegistry address
         if (details.originChainId == localDomain) {
@@ -130,5 +122,4 @@ abstract contract NFTBridgeBase is
             );
         }
     }
-
 }

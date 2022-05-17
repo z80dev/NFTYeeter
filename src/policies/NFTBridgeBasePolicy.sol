@@ -22,7 +22,6 @@ abstract contract NFTBridgeBasePolicy is Policy {
         xmgr = ERC721XManager(getModuleAddress(bytes5("XFTMG")));
     }
 
-
     function requestWrites()
         external
         view

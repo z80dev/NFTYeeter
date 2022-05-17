@@ -7,8 +7,9 @@ pragma solidity >=0.8.7 <0.9.0;
 import "./NFTBridgeBase.sol";
 
 contract SelfBridge is NFTBridgeBase {
-
-    constructor(address _kernel, uint32 _domain) NFTBridgeBase(_kernel, _domain) {}
+    constructor(address _kernel, uint32 _domain)
+        NFTBridgeBase(_kernel, _domain)
+    {}
 
     function bridgeToken(
         address collection,
@@ -17,13 +18,23 @@ contract SelfBridge is NFTBridgeBase {
         uint32 dstChainId,
         uint256 relayerFee
     ) external {
-        return this.bridgeToSelf(collection, tokenId, recipient, dstChainId, relayerFee);
+        return
+            this.bridgeToSelf(
+                collection,
+                tokenId,
+                recipient,
+                dstChainId,
+                relayerFee
+            );
     }
 
     function receiveAsset(bytes memory _payload) external {
-        return _receive(_payload);
+        ERC721XManager.BridgedTokenDetails memory details = abi.decode(
+            _payload,
+            (ERC721XManager.BridgedTokenDetails)
+        );
+        return _receive(details);
     }
-
 
     function bridgeToSelf(
         address collection,
@@ -31,15 +42,13 @@ contract SelfBridge is NFTBridgeBase {
         address recipient,
         uint32 fakeChainId,
         uint256 relayerFee
-                          ) external {
+    ) external {
         ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
             collection,
             tokenId,
             recipient
         );
         details.originChainId = uint32(fakeChainId);
-        bytes memory _payload = abi.encode(details);
-        _receive(_payload);
+        _receive(details);
     }
-
 }
