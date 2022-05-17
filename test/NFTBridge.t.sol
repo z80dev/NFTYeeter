@@ -5,7 +5,7 @@ pragma solidity ^0.8.11;
 import "xapp-starter/contract-to-contract-interactions/test/utils/DSTestPlus.sol";
 import {ConnextHandler} from "nxtp/nomad-xapps/contracts/connext/ConnextHandler.sol";
 import "forge-std/console.sol";
-import "../src/policies/NFTBridge.sol";
+import "../src/policies/ConnextNFTBridge.sol";
 import "../src/modules/DepositRegistry.sol";
 import "../src/modules/ERC721TransferManager.sol";
 import "../src/modules/ERC721XManager.sol";
@@ -33,7 +33,7 @@ contract DummyNFT is ERC721 {
     }
 }
 
-contract NFTBridgeTestFork is DSTestPlus {
+contract ConnextNFTBridgeTestFork is DSTestPlus {
     // Kernel & modules
     Kernel kernel;
     DepositRegistry reg;
@@ -41,8 +41,8 @@ contract NFTBridgeTestFork is DSTestPlus {
     ERC721XManager xmg;
 
     // Policies
-    NFTBridge yeeter;
-    NFTBridge remoteCatcher;
+    ConnextNFTBridge yeeter;
+    ConnextNFTBridge remoteCatcher;
 
     address payable public connext = payable(0x71a52104739064bc35bED4Fc3ba8D9Fb2a84767f);
     address public constant testToken =
@@ -96,7 +96,7 @@ contract NFTBridgeTestFork is DSTestPlus {
         kernel.executeAction(Actions.InstallModule, address(xmg));
 
         // init policies
-        yeeter = new NFTBridge(kovanDomainId, connext, testToken, address(kernel));
+        yeeter = new ConnextNFTBridge(kovanDomainId, connext, testToken, address(kernel));
 
         // connext trusts
         yeeter.setTrustedRemote(rinkebyDomainId, address(yeeter));
@@ -156,7 +156,7 @@ contract NFTBridgeTestFork is DSTestPlus {
 
 }
 
-contract NFTBridgeTest is DSTestPlus {
+contract ConnextNFTBridgeTest is DSTestPlus {
 
     // Kernel & modules
     Kernel kernel;
@@ -165,8 +165,8 @@ contract NFTBridgeTest is DSTestPlus {
     ERC721XManager xmg;
 
     // Policies
-    NFTBridge yeeter;
-    NFTBridge remoteCatcher;
+    ConnextNFTBridge yeeter;
+    ConnextNFTBridge remoteCatcher;
 
     // NFT contracts
     DummyNFT dumbNFT;
@@ -219,8 +219,8 @@ contract NFTBridgeTest is DSTestPlus {
         kernel.executeAction(Actions.InstallModule, address(xmg));
 
         // init policies
-        yeeter = new NFTBridge(localDomain, connext, transactingAssetId, address(kernel));
-        remoteCatcher = new NFTBridge(remoteDomain, connext, transactingAssetId, address(kernel));
+        yeeter = new ConnextNFTBridge(localDomain, connext, transactingAssetId, address(kernel));
+        remoteCatcher = new ConnextNFTBridge(remoteDomain, connext, transactingAssetId, address(kernel));
 
         // connext trusts
         yeeter.setTrustedRemote(remoteDomain, address(remoteCatcher));

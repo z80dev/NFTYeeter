@@ -31,16 +31,4 @@ contract DepositRegistryTest is Test {
         assertEq(localNFT.ownerOf(0), address(reg));
     }
 
-    /*
-    function testYeeterWillBridge() public {
-        vm.startPrank(alice);
-        localNFT.safeTransferFrom(alice, address(yeeter), 0);
-        vm.mockCall(connext, abi.encodePacked(IConnextHandler.xcall.selector), abi.encode(0));
-        yeeter.bridgeToken(address(localNFT), 0, alice, remoteDomain);
-        (address depositor, bool bridged) = yeeter.deposits(address(localNFT), 0);
-        assertEq(depositor, alice);
-        assertTrue(bridged);
-    }
-    */
-
 }

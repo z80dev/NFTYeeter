@@ -19,7 +19,7 @@ import "./NFTBridgeBase.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 
-contract NFTBridge is
+contract ConnextNFTBridge is
     NFTBridgeBase,
     ConnextBaseXApp
 {
