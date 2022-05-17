@@ -3,7 +3,7 @@
 pragma solidity ^0.8.11;
 
 import "forge-std/Test.sol";
-import "../src/DepositRegistry.sol";
+import "../src/modules/DepositRegistry.sol";
 import "ERC721X/ERC721X.sol";
 import "forge-std/console.sol";
 import "forge-std/console2.sol";

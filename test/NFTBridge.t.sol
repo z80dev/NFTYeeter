@@ -5,10 +5,10 @@ pragma solidity ^0.8.11;
 import "xapp-starter/contract-to-contract-interactions/test/utils/DSTestPlus.sol";
 import {ConnextHandler} from "nxtp/nomad-xapps/contracts/connext/ConnextHandler.sol";
 import "forge-std/console.sol";
-import "../src/NFTBridge.sol";
-import "../src/DepositRegistry.sol";
-import "../src/ERC721TransferManager.sol";
-import "../src/ERC721XManager.sol";
+import "../src/policies/NFTBridge.sol";
+import "../src/modules/DepositRegistry.sol";
+import "../src/modules/ERC721TransferManager.sol";
+import "../src/modules/ERC721XManager.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "solmate/tokens/ERC721.sol";
 import {IConnextHandler} from "nxtp/interfaces/IConnextHandler.sol";
@@ -96,7 +96,7 @@ contract NFTBridgeTestFork is DSTestPlus {
         kernel.executeAction(Actions.InstallModule, address(xmg));
 
         // init policies
-        yeeter = new NFTBridge(kovanDomainId, connext, testToken, address(kernel), address(lzEndpoint));
+        yeeter = new NFTBridge(kovanDomainId, connext, testToken, address(kernel));
 
         // connext trusts
         yeeter.setTrustedRemote(rinkebyDomainId, address(yeeter));
@@ -219,8 +219,8 @@ contract NFTBridgeTest is DSTestPlus {
         kernel.executeAction(Actions.InstallModule, address(xmg));
 
         // init policies
-        yeeter = new NFTBridge(localDomain, connext, transactingAssetId, address(kernel), address(lzEndpoint));
-        remoteCatcher = new NFTBridge(remoteDomain, connext, transactingAssetId, address(kernel), address(lzEndpoint));
+        yeeter = new NFTBridge(localDomain, connext, transactingAssetId, address(kernel));
+        remoteCatcher = new NFTBridge(remoteDomain, connext, transactingAssetId, address(kernel));
 
         // connext trusts
         yeeter.setTrustedRemote(remoteDomain, address(remoteCatcher));

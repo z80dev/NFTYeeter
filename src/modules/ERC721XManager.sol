@@ -5,7 +5,7 @@
 
 import "ERC721X/MinimalOwnable.sol";
 import "ERC721X/ERC721XInitializable.sol";
-import "./interfaces/IERC721XManager.sol";
+import "../interfaces/IERC721XManager.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "Default/Kernel.sol";
 
@@ -13,7 +13,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
     struct BridgedTokenDetails {
-        uint16 originChainId;
+        uint32 originChainId;
         address originAddress;
         uint256 tokenId;
         address owner;
@@ -24,7 +24,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
 
     address public erc721xImplementation;
 
-    event MintedCollection(uint16 originChainId, address originAddress, string name);
+    event MintedCollection(uint32 originChainId, address originAddress, string name);
     event MintedItem(address collection, uint256 tokenId, address recipient);
 
     constructor(Kernel kernel_) MinimalOwnable() Module(kernel_) {
@@ -49,7 +49,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         emit MintedItem(collection, tokenId, recipient);
     }
 
-    function _calculateCreate2Address(uint16 chainId, address originAddress)
+    function _calculateCreate2Address(uint32 chainId, address originAddress)
         internal
         view
         returns (address)
@@ -58,7 +58,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         return Clones.predictDeterministicAddress(erc721xImplementation, salt);
     }
 
-    function getLocalAddress(uint16 originChainId, address originAddress)
+    function getLocalAddress(uint32 originChainId, address originAddress)
         external
         view
         returns (address)
@@ -67,7 +67,7 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
     }
 
     function deployERC721X(
-        uint16 chainId,
+        uint32 chainId,
         address originAddress,
         string memory name,
         string memory symbol

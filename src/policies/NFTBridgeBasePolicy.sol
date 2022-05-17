@@ -2,9 +2,9 @@
 //
 
 import "Default/Kernel.sol";
-import "./ERC721TransferManager.sol";
-import "./ERC721XManager.sol";
-import "./DepositRegistry.sol";
+import "../modules/ERC721TransferManager.sol";
+import "../modules/ERC721XManager.sol";
+import "../modules/DepositRegistry.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 

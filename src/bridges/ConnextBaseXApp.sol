@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+//
+// base for building any Connext-enabled xApp
 
 pragma solidity >=0.8.7 <0.9.0;
 
@@ -6,14 +8,12 @@ import {ConnextHandler} from "nxtp/nomad-xapps/contracts/connext/ConnextHandler.
 import "ERC721X/MinimalOwnable.sol";
 
 abstract contract ConnextBaseXApp is MinimalOwnable {
-    uint32 public immutable localDomain; // identifies our chain to other chains
 
     ConnextHandler public immutable connext;
     mapping(uint32 => address) public trustedRemote;
 
     constructor(address payable _connext, uint32 _domain) MinimalOwnable() {
         connext = ConnextHandler(_connext);
-        localDomain = _domain;
     }
 
     modifier onlyExecutor() {

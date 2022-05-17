@@ -4,82 +4,29 @@ import "ERC721X/ERC721X.sol";
 
 import "solmate/tokens/ERC721.sol";
 
-import "nxtp/interfaces/IConnextHandler.sol";
-import "nxtp/interfaces/IExecutor.sol";
-
 import "openzeppelin-contracts/contracts/utils/Address.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
 
-import "./ERC721XManager.sol";
+import "../modules/ERC721XManager.sol";
 import "./NFTBridgeBasePolicy.sol";
-import "./ConnextBaseXApp.sol";
-import "./interfaces/INFTBridge.sol";
+import "../interfaces/INFTBridge.sol";
 
 pragma solidity >=0.8.7 <0.9.0;
 
-contract NFTBridge is
+abstract contract NFTBridgeBase is
     INFTBridge,
-    NFTBridgeBasePolicy,
-    ConnextBaseXApp
+    NFTBridgeBasePolicy
 {
-    // connext data
-    address private immutable transactingAssetId; // this may change in the future
-
+    uint32 localDomain;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
 
     constructor(
-        uint32 _localDomain,
-        address payable _connext,
-        address _transactingAssetId,
         address kernel_,
-        address _endpoint
+        uint32 _domain
     )
         NFTBridgeBasePolicy(kernel_)
-        ConnextBaseXApp(_connext, _localDomain)
     {
-        transactingAssetId = _transactingAssetId;
-    }
-
-    function bridgeToken(
-        address collection,
-        uint256 tokenId,
-        address recipient,
-        uint32 dstChainId,
-        uint256 relayerFee
-    ) external {
-        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
-            collection,
-            tokenId,
-            recipient
-        );
-        _bridgeToken(details, dstChainId, relayerFee);
-    }
-
-    function bridgeToSelf(
-        address collection,
-        uint256 tokenId,
-        address recipient,
-        uint32 fakeChainId,
-        uint256 relayerFee
-                          ) external {
-        ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
-            collection,
-            tokenId,
-            recipient
-        );
-        details.originChainId = uint16(fakeChainId);
-        bytes memory _payload = abi.encode(details);
-        _receive(_payload);
-    }
-
-    // function called by remote contract
-    // this signature maximizes future flexibility & backwards compatibility
-    function receiveAsset(bytes memory _payload) external onlyExecutor {
-        // check remote contract is trusted remote NFTYeeter
-        uint32 remoteChainId = IExecutor(msg.sender).origin();
-        address remoteCaller = IExecutor(msg.sender).originSender();
-        require(trustedRemote[remoteChainId] == remoteCaller, "UNAUTH");
-        _receive(_payload);
+        localDomain = _domain;
     }
 
     function _prepareTransfer(
@@ -105,7 +52,7 @@ contract NFTBridge is
         ERC721 nft = ERC721(collection);
         ERC721XManager.BridgedTokenDetails memory details = ERC721XManager
             .BridgedTokenDetails(
-                uint16(localDomain),
+                localDomain,
                 collection,
                 tokenId,
                 recipient,
@@ -130,37 +77,6 @@ contract NFTBridge is
         }
 
         return details;
-    }
-
-    function _bridgeToken(
-        ERC721XManager.BridgedTokenDetails memory details,
-        uint32 dstChainId,
-        uint256 relayerFee
-    ) internal {
-        address dstCatcher = trustedRemote[dstChainId];
-        require(dstCatcher != address(0), "Chain not supported");
-        bytes4 selector = this.receiveAsset.selector;
-        bytes memory payload = abi.encode(details);
-        bytes memory callData = abi.encodeWithSelector(selector, payload);
-        IConnextHandler.CallParams memory callParams = IConnextHandler
-            .CallParams({
-                to: dstCatcher,
-                callData: callData,
-                originDomain: localDomain,
-                destinationDomain: dstChainId,
-                forceSlow: false,
-                receiveLocal: false
-                // callback: address(0),
-                // callbackFee: 0
-            });
-        IConnextHandler.XCallArgs memory xcallArgs = IConnextHandler.XCallArgs({
-            params: callParams,
-            transactingAssetId: transactingAssetId,
-            amount: 0,
-            relayerFee: relayerFee
-        });
-        connext.xcall(xcallArgs);
-        // record that this NFT has been bridged
     }
 
     event ReceivedToken(address originAddress, uint256 tokenId, address owner);

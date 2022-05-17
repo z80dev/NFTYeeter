@@ -2,7 +2,7 @@
 //
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
-import "./interfaces/IDepositRegistry.sol";
+import "../interfaces/IDepositRegistry.sol";
 import "ERC721X/ERC721XInitializable.sol";
 import "ERC721X/MinimalOwnable.sol";
 import "Default/Kernel.sol";
