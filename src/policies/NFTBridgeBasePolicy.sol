@@ -29,9 +29,10 @@ abstract contract NFTBridgeBasePolicy is Policy {
         onlyKernel
         returns (bytes5[] memory permissions)
     {
-        bytes5[] memory reqs = new bytes5[](2);
+        bytes5[] memory reqs = new bytes5[](3);
         reqs[0] = bytes5("NFTMG");
         reqs[1] = bytes5("XFTMG");
+        reqs[2] = bytes5("DPREG");
         return reqs;
     }
 }

@@ -41,7 +41,7 @@ contract ConnextNFTBridge is NFTBridgeBase, ConnextBaseXApp {
         address recipient,
         uint32 dstChainId,
         uint256 relayerFee
-    ) external {
+    ) external payable {
         ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
             collection,
             tokenId,

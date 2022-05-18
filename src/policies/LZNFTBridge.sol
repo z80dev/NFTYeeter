@@ -23,14 +23,13 @@ contract LZNFTBridge is NonblockingLzApp, NFTBridgeBase {
         _receive(details);
     }
 
-
     function bridgeToken(
         address collection,
         uint256 tokenId,
         address recipient,
         uint32 dstChainId,
         uint256 relayerFee
-    ) external {
+    ) external payable {
         ERC721XManager.BridgedTokenDetails memory details = _prepareTransfer(
             collection,
             tokenId,
@@ -45,7 +44,7 @@ contract LZNFTBridge is NonblockingLzApp, NFTBridgeBase {
         uint256 relayerFee
     ) internal {
         bytes memory payload = abi.encode(details);
-        _lzSend(dstChainId, payload, payable(details.owner), address(0x0), bytes(""));
+        _lzSend(dstChainId, payload, payable(details.owner), address(0x0), abi.encodePacked(uint16(1), uint256(800000)));
     }
 
 }

@@ -6,7 +6,50 @@ Makes use of:
 - [ERC721X](https://github.com/OphiuchusDAO/ERC721X)
 - Connext's upcoming Amarok update
 
-# Current architecture
+# Current Architecture (Default Framework)
+
+We are following the [Default Framework](https://github.com/fullyallocated/Default) approach for structuring this codebase. Although the architecture is only starting to grow, the potential for future growth of complexity is unbounded, and this framework provides us with the toolset to manage this complexity effectively, easily updating and upgrading the system in parts.
+
+## Policies
+
+Policies contain the logic at the edges of our system, and fire off the approprate actions within the system. They are managed and authorized via the Kernel.
+
+Different policies can interact with the same Modules. This allows the system to grow easily and naturally. In context of Zipline, different Policies may handle different bridge technologies, all made compatible via their ability to interact with the same modules.
+
+## NFTBridgeBasePolicy
+
+Base Policy class which handles registering with the Kernel and setting up the modules all NFT bridge contracts will depend on, namely:
+
+- ERC721TransferManager
+- ERC721XManager
+- DepositRegistry
+
+## NFTBridgeBase
+
+Base NFT bridge class which inherits from NFTBridgeBasePolicy, therefore already has access to the modules it needs.
+
+This contract provides the base functionality for creating or parsing a struct containing necessary data for bridging an NFT. 
+
+- `_prepareTransfer(address collection, uint256 tokenId, address recipient)`: internal function. It takes posession of the NFT to be bridged and returns the proper payload for bridging.
+- `_receive(ERC721XManager.BridgedTokenDetails memory details)`: Handles a received transfer, mints the required NFT, etc.
+
+### ConnextNFTBridge
+
+This policy implements NFTBridgeBase and wires up the necessary logic between Connext and the methods exposed by NFTBridgeBase
+
+To bridge, it calls `_prepareTransfer` in order to prepare the bridging data struct and take posession of the NFT. Then, it passes that bridging data struct to itself on another chain, via connext.
+
+To receive a bridge, it parses the payload delivered by connext, and then passes it to `_receive`
+
+## Modules
+
+From the [Default docs]()
+
+> Modules can only be accessed through whitelisted Policy contracts, and have no dependencies of their own. Modules can only modify their own internal state.
+
+### 
+
+# Previous architecture, but still a good explanation of what existing parts do
 
 ## Deposits Registry
 

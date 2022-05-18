@@ -17,7 +17,7 @@ contract SelfBridge is NFTBridgeBase {
         address recipient,
         uint32 dstChainId,
         uint256 relayerFee
-    ) external {
+    ) external payable {
         return
             this.bridgeToSelf(
                 collection,

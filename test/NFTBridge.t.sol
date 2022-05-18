@@ -147,6 +147,24 @@ contract ConnextNFTBridgeTestFork is DSTestPlus {
         yeeter.bridgeToken(address(dumbNFT), 0, alice, rinkebyDomainId, 0);
 
         vm.stopPrank();
+
+        address executor = address(ConnextHandler(connext).executor());
+        vm.startPrank(executor);
+        vm.mockCall(executor, abi.encodePacked(IExecutor.origin.selector), abi.encode(rinkebyDomainId));
+        vm.mockCall(executor, abi.encodePacked(IExecutor.originSender.selector), abi.encode(address(yeeter)));
+        bytes memory details = abi.encode(BridgedTokenDetails(
+                                           kovanDomainId,
+                                           address(dumbNFT),
+                                           0,
+                                           alice,
+                                           dumbNFT.name(),
+                                           dumbNFT.symbol(),
+                                           "testURI"
+                                                ));
+
+        yeeter.receiveAsset(details);
+        vm.stopPrank();
+        assertEq(alice, dumbNFT.ownerOf(0));
         // remoteCatcher.receiveAsset(details);
 
         // assertEq(keccak256(abi.encodePacked(remoteNFT.symbol())), keccak256("DUM"));

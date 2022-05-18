@@ -87,13 +87,14 @@ abstract contract NFTBridgeBase is INFTBridge, NFTBridgeBasePolicy {
             // we're bridging this NFT *back* home
             // remote copy has been burned
             // simply send local one from Registry to recipient
-            mgr.safeTransferFrom(
-                details.originAddress,
-                address(registry),
-                details.owner,
-                details.tokenId,
-                bytes("")
-            );
+            registry.withdraw(details.originAddress, details.owner, details.tokenId);
+            // mgr.safeTransferFrom(
+            //     details.originAddress,
+            //     address(registry),
+            //     details.owner,
+            //     details.tokenId,
+            //     bytes("")
+            // );
         } else {
             // this is a remote NFT bridged to this chain
 

@@ -9,5 +9,5 @@ interface INFTBridge {
         address recipient,
         uint32 dstChainId,
         uint256 relayerFee
-    ) external;
+    ) external payable;
 }
