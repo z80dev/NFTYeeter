@@ -16,7 +16,7 @@ Policies contain the logic at the edges of our system, and fire off the appropra
 
 Different policies can interact with the same Modules. This allows the system to grow easily and naturally. In context of Zipline, different Policies may handle different bridge technologies, all made compatible via their ability to interact with the same modules.
 
-## NFTBridgeBasePolicy
+### NFTBridgeBasePolicy
 
 Base Policy class which handles registering with the Kernel and setting up the modules all NFT bridge contracts will depend on, namely:
 
@@ -24,7 +24,7 @@ Base Policy class which handles registering with the Kernel and setting up the m
 - ERC721XManager
 - DepositRegistry
 
-## NFTBridgeBase
+### NFTBridgeBase
 
 Base NFT bridge class which inherits from NFTBridgeBasePolicy, therefore already has access to the modules it needs.
 
@@ -40,6 +40,15 @@ This policy implements NFTBridgeBase and wires up the necessary logic between Co
 To bridge, it calls `_prepareTransfer` in order to prepare the bridging data struct and take posession of the NFT. Then, it passes that bridging data struct to itself on another chain, via connext.
 
 To receive a bridge, it parses the payload delivered by connext, and then passes it to `_receive`
+
+
+### LZNFTBridge
+
+This policy implements NFTBridgeBase and wires up the necessary logic between LayerZero and the methods exposed by NFTBridgeBase
+
+To bridge, it calls `_prepareTransfer` in order to prepare the bridging data struct and take posession of the NFT. Then, it passes that bridging data struct to itself on another chain, via connext.
+
+To receive a bridge, it parses the payload delivered by LayerZero, and then passes it to `_receive`
 
 ## Modules
 
