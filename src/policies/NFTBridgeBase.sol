@@ -6,6 +6,7 @@ import "solmate/tokens/ERC721.sol";
 
 import "openzeppelin-contracts/contracts/utils/Address.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC165.sol";
+import "openzeppelin-contracts/contracts/interfaces/IERC2981.sol";
 
 import "../modules/ERC721XManager.sol";
 import "./NFTBridgeBasePolicy.sol";
@@ -16,6 +17,7 @@ pragma solidity >=0.8.7 <0.9.0;
 abstract contract NFTBridgeBase is INFTBridge, NFTBridgeBasePolicy {
     uint32 localDomain;
     bytes4 constant IERC721XInterfaceID = 0xefd00bbc;
+    bytes4 constant IERC2981InterfaceID = 0x2a55205a;
 
     constructor(address kernel_, uint32 _domain) NFTBridgeBasePolicy(kernel_) {
         localDomain = _domain;
@@ -42,6 +44,13 @@ abstract contract NFTBridgeBase is INFTBridge, NFTBridgeBasePolicy {
         );
 
         ERC721 nft = ERC721(collection);
+        address feeRecipient = address(0x0);
+        uint256 feeNumerator = 0;
+
+        if (IERC165(collection).supportsInterface(IERC2981InterfaceID)) {
+            (feeRecipient, feeNumerator) = IERC2981(collection).royaltyInfo(0, 10000);
+        }
+
         ERC721XManager.BridgedTokenDetails memory details = ERC721XManager
             .BridgedTokenDetails(
                 localDomain,
@@ -50,7 +59,9 @@ abstract contract NFTBridgeBase is INFTBridge, NFTBridgeBasePolicy {
                 recipient,
                 nft.name(),
                 nft.symbol(),
-                nft.tokenURI(tokenId)
+                nft.tokenURI(tokenId),
+                feeRecipient,
+                uint96(feeNumerator)
             );
 
         // check if we're dealing with a bridged NFT
@@ -106,11 +117,17 @@ abstract contract NFTBridgeBase is INFTBridge, NFTBridgeBasePolicy {
 
             if (!Address.isContract(localAddress)) {
                 // contract doesn't exist; deploy
+                address feeRecipient = details.feeRecipient;
+                if (feeRecipient == address(0x0)) {
+                    feeRecipient = address(this);
+                }
                 xmgr.deployERC721X(
                     details.originChainId,
                     details.originAddress,
                     details.name,
-                    details.symbol
+                    details.symbol,
+                    feeRecipient,
+                    details.feeNumerator
                 );
             }
 

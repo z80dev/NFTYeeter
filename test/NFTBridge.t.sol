@@ -75,6 +75,8 @@ contract ConnextNFTBridgeTestFork is DSTestPlus {
         string name;
         string symbol;
         string tokenURI;
+        address feeRecipient;
+        uint96 feeNumerator;
     }
 
     function setUp() public {
@@ -124,7 +126,9 @@ contract ConnextNFTBridgeTestFork is DSTestPlus {
                                            alice,
                                            dumbNFT.name(),
                                            dumbNFT.symbol(),
-                                           "testURI"
+                                           "testURI",
+                                           address(0x0),
+                                           0
                                                 ));
         yeeter.receiveAsset(details);
 
@@ -159,7 +163,9 @@ contract ConnextNFTBridgeTestFork is DSTestPlus {
                                            alice,
                                            dumbNFT.name(),
                                            dumbNFT.symbol(),
-                                           "testURI"
+                                           "testURI",
+                                           address(0x0),
+                                           0
                                                 ));
 
         yeeter.receiveAsset(details);
@@ -216,6 +222,8 @@ contract ConnextNFTBridgeTest is DSTestPlus {
         string name;
         string symbol;
         string tokenURI;
+        address feeRecipient;
+        uint96 feeNumerator;
     }
 
     function setUp() public {
@@ -257,7 +265,7 @@ contract ConnextNFTBridgeTest is DSTestPlus {
         localNFT = ERC721XInitializable(
             Clones.cloneDeterministic(erc721xImplementation, salt)
         );
-        localNFT.initialize("TestMonkeys", "TST", address(0), localDomain);
+        localNFT.initialize("TestMonkeys", "TST", address(0), localDomain, 0, address(0x0));
         localNFT.mint(alice, 0, "testURI");
     }
 
@@ -298,7 +306,9 @@ contract ConnextNFTBridgeTest is DSTestPlus {
                                            alice,
                                            dumbNFT.name(),
                                            dumbNFT.symbol(),
-                                           "testURI"
+                                           "testURI",
+                                           address(0x0),
+                                           0
                                                 ));
         remoteCatcher.receiveAsset(details);
         ERC721XInitializable remoteNFT = ERC721XInitializable(xmg.getLocalAddress(localDomain, address(dumbNFT)));

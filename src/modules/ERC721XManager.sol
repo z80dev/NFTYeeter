@@ -20,6 +20,8 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         string name;
         string symbol;
         string tokenURI;
+        address feeRecipient;
+        uint96 feeNumerator;
     }
 
     address public erc721xImplementation;
@@ -74,13 +76,15 @@ contract ERC721XManager is IERC721XManager, MinimalOwnable, Module {
         uint32 chainId,
         address originAddress,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address feeRecipient,
+        uint96 feeNumerator
     ) external returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(chainId, originAddress));
         ERC721XInitializable nft = ERC721XInitializable(
             Clones.cloneDeterministic(erc721xImplementation, salt)
         );
-        nft.initialize(name, symbol, originAddress, chainId);
+        nft.initialize(name, symbol, originAddress, chainId, feeNumerator, feeRecipient);
         emit MintedCollection(chainId, originAddress, name);
         return address(nft);
     }

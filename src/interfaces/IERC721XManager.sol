@@ -16,7 +16,9 @@ interface IERC721XManager {
         uint32 originChainId,
         address originAddress,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address feeRecipient,
+        uint96 feeNumerator
     ) external returns (address);
 
     function getLocalAddress(uint32 originChainId, address originAddress)
