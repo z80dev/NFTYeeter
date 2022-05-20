@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+pragma solidity >=0.8.7 <0.9.0;
+
 import "ERC721X/ERC721X.sol";
 
 import "solmate/tokens/ERC721.sol";
@@ -12,7 +14,6 @@ import "../modules/ERC721XManager.sol";
 import "./NFTBridgeBasePolicy.sol";
 import "../interfaces/INFTBridge.sol";
 
-pragma solidity >=0.8.7 <0.9.0;
 
 abstract contract NFTBridgeBase is INFTBridge, NFTBridgeBasePolicy {
     uint32 localDomain;

@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
+
+pragma solidity >=0.8.7 <0.9.0;
+
 import "solmate/tokens/ERC721.sol";
 import "../interfaces/IDepositRegistry.sol";
 import "ERC721X/ERC721XInitializable.sol";
 import "Default/Kernel.sol";
 
-pragma solidity >=0.8.7 <0.9.0;
 
 contract DepositRegistry is
     IDepositRegistry,

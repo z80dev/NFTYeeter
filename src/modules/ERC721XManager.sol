@@ -3,6 +3,8 @@
 // This contract handles deploying ERC721X contracts if needed
 // Should have both explicit deploy functionality & deploy-if-needed
 
+pragma solidity >=0.8.7 <0.9.0;
+
 import "ERC721X/MinimalOwnable.sol";
 import "ERC721X/MinimalOwnableInitializable.sol";
 import "ERC721X/ERC721XInitializable.sol";
@@ -11,7 +13,6 @@ import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import "Default/Kernel.sol";
 
-pragma solidity >=0.8.7 <0.9.0;
 
 contract RoyaltyReceiver is Initializable, MinimalOwnableInitializable {
 

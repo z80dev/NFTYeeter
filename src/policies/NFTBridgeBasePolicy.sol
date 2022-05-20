@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
+pragma solidity >=0.8.7 <0.9.0;
+
 import "Default/Kernel.sol";
 import "../modules/ERC721TransferManager.sol";
 import "../modules/ERC721XManager.sol";
 import "../modules/DepositRegistry.sol";
 
-pragma solidity >=0.8.7 <0.9.0;
 
 abstract contract NFTBridgeBasePolicy is Policy {
     // Modules this Policy communicates with
